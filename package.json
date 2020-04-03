@@ -1,0 +1,20 @@
+{
+    "name": "vella",
+    "version": "0.0.1",
+    "description": "",
+    "type": "module",
+    "main": "index.js",
+    "license": "MIT",
+    "files": [
+        "index.js",
+        "src/*.js"
+    ],
+    "dependencies": {
+        "s-js": "0.4.9"
+    },
+    "devDependencies": {
+        "eslint": "^6.8.0",
+        "jsdom": "^16.2.0",
+        "ospec": "pygy/ospec#misc-updates-2020"
+    }
+}
