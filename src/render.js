@@ -6,7 +6,7 @@ import {doc} from "./util.js"
 export {
 	forEach, toList,
 
-	boot, v, w, V,
+	boot, v, V,
 	beforeRemove, onRender, onReflow,
 	withNS, Value,
 
