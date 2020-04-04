@@ -17,8 +17,8 @@ const bundle =
 		() => rollup({
 			input,
 			plugins: [
-					common(),
-					resolve()
+				common(),
+				resolve()
 			]
 		})
 	)
@@ -39,7 +39,7 @@ const minifiedOutput =
 	bundle.then( 
 		x => x.generate({
 			plugins: [
-					terser()
+				terser()
 			],
 			sourcemap: true,
 			name: 'V'
