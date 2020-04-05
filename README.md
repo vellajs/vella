@@ -12,7 +12,7 @@ At this point the documentation is intended for people familiar with Mithril. Th
 
 `vella` is currently built on top of [S.js](https://github.com/adamhaile/S) by Adam Haile. It is more or less Surplus, but with Hyperscript (and composability cranked to eleven). We may end up forking or replacing S, but the core ideas will persist (it is a work of beauty/genius). Understanding S is required to get `vella`.
 
-Lexicon: in the `S` docs, streams are called "signals", and dependent streams are called "computations". I'll use the same terminology for now here to make it easier for you if you're also scouring the `S` docs. They are mostly push streams AFAIU, but the author descrbes them as hybrid push/pull somewhere in the issues, not sure what he meant.
+Lexicon: in the `S` docs, streams are called "signals", and dependent streams are called "computations". I'll use the same terminology for now here to make it easier for you if you're also scouring the `S` docs. They are mostly push streams AFAIU, but the author describes them as hybrid push/pull somewhere in the issues, not sure what he meant.
 
 Here's a quick rundown of the `S` API:
 
@@ -37,7 +37,7 @@ console.log(sum()) // 14
 
 - `S.on(...)` creates a computation with explicit, static dependencies plus some bells and whistles. I don't know its signature off the top of my head, see the S docs.
 
-Using this API lets us achieve what people thought `m.prop` should have done in the Mithril v0.1/0.2 days: namely, update the DOM automatically when set. Also, you don't have to call the signals from view code (unless doing conditional rendering or combining values in complex ways), since the hyperscipt factory understands streams naively: 
+Using this API lets us achieve what people thought `m.prop` should have done in the Mithril v0.1/0.2 days: namely, update the DOM automatically when set. Also, you don't have to call the signals from view code (unless doing conditional rendering or combining values in complex ways), since the hyperscript factory understands streams natively: 
 
 - bad `foo() + " " + bar()`
 - good `[foo, " ", bar]`
@@ -51,7 +51,7 @@ where:
 - `tagName` is a string
 - `attrs` is either
   - `null`, `undefined`, `true` or `false`. These values are ignored.
-  - a plain objects whose keys represent element attributes, properties, or events, and whose keys may be either the value, you want to assign, a stream of such values (on stream update, the attrs will be diffed, and updated efficiently), or a function.
+  - a plain object whose keys represent element attributes, properties, or events, and whose values may be either the value you want to assign, a stream of such values (on stream update, the attrs will be diffed, and updated efficiently), or a function.
     - for events, a function is the handler
     - for other props and attrs, the function is turned into a stream of values.
     - if you want to pass a function as a prop value (i.e. if you want to prevent automatic streamification), wrap it in a `Value()` call.
@@ -94,7 +94,7 @@ Bootstraps an app within a `S.root()` call. The Children are inserted in last po
 ### `onReflow(cb: ()=>void) => void`
 
 When called from view code:
-- `onRender` schedules a callback that will be  triggered a microtask just after the current sync update finishes
+- `onRender` schedules a callback that will be triggered a microtask just after the current sync update finishes
 - `onReflow` schedules a callback that will be called immediately after the `onRender` ones, after triggering a browser reflow by getting `document.body.clientWidth`. This lets one trigger CSS transitions (i.e. easy animations) by adding a class after the reflow. The calls are batched, to avoid layout thrashing. See the *emitWithDOMRange* section below for a discussion on how to access DOM nodes.
 
 ### `onRemove(cb)` (to be revisited)
@@ -125,13 +125,13 @@ In `tagName` positions, they are components. In `attrs` `attrValue` and `childre
 
 A component is just a function which is called once at render time, whose lexical scope can be used to define local state, and which returns or emits `children` (see below for `emit()`). It can also be used to define `S.cleanup()` hooks that will be called when the surrounding root/stream/live zone is refreshed or removed.
 
-A live zone is a function that will wrapped as a contextualized `S` computation (i.e. a dependent stream). Depending on the context (`attrs`, `attrsValue` or `children`, it is expected to return a corresponding value (or a stream, or array of values, composable at will).
+A live zone is a function that will be wrapped as a contextualized `S` computation (i.e. a dependent stream). Depending on the context (`attrs`, `attrsValue` or `children`), it is expected to return a corresponding value (or a stream, or array of values, composable at will).
 
 When one of its dependencies is updated, the function is called again and the new result replaces the previous one in the DOM tree (entirely for `children` and `attrValue`, by diffing for `attrs`).
 
 ### DOMRanges
 
-A `DOMRange` is an object that represents a portion of the live DOM. It has a `parentNode`, which points to the parent of the elements it contains, a `firstNode` and a `lastNode` which are identical for one node ranges, and different for "fragments". At last, it contains a "parentDOMRange" which is defined if there are serveral nested DOMRanges that have the same parent (this is an implementation detail, only here for completude).
+A `DOMRange` is an object that represents a portion of the live DOM. It has a `parentNode`, which points to the parent of the elements it contains, a `firstNode` and a `lastNode` which are identical for one node ranges, and different for "fragments". At last, it contains a "parentDOMRange" which is defined if there are serveral nested DOMRanges that have the same parent (this is an implementation detail, only here for completeness).
 
 DOMRanges are a stateful. If they represent a live zone, the `firstNode` and `lastNode` will be updated when the zone is redrawn. They are used internally for book keeping on redraw, and are also exposed by the `emitWithDOMRange` function.
 
@@ -144,7 +144,7 @@ We also provide a `forEach(DOMRange, (Element) => void) => void` and `toList(DOM
 ### `v(List, streamOfKeys, renderer)`
 ### `list(renderer, streamOfKeys)`/`list(renderer)(streamOfKeys)`
 
-Both provide the same funcitonality; one is nice to inline in the view, the other is nice for wrapping a reusable renderer (though it could be a bit of a gimmick since you can just pass the renderer around).
+Both provide the same functionality; one is nice to inline in the view, the other is nice for wrapping a reusable renderer (though it could be a bit of a gimmick since you can just pass the renderer around).
 
 - `streamOfKeys` is a stream of arrays of unique values (there can't be dupes at any given time)
 - `renderer` is either
