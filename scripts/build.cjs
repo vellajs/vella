@@ -1,5 +1,4 @@
 const { rollup } = require('rollup')
-const common = require('@rollup/plugin-commonjs')
 const resolve = require('@rollup/plugin-node-resolve')
 const { terser } = require('rollup-plugin-terser')
 const path = require('path')
@@ -17,7 +16,6 @@ const bundle =
 		() => rollup({
 			input,
 			plugins: [
-				common(),
 				resolve()
 			]
 		})
