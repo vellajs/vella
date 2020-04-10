@@ -1,7 +1,7 @@
 {
     "name": "vella",
-    "version": "0.0.3",
-    "description": "",
+    "version": "0.0.4-pre0",
+    "description": "stream-based Web framework",
     "type": "module",
     "main": "index.js",
     "license": "MIT",
