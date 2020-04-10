@@ -10,3 +10,6 @@ export {
 
 	S
 } from "./src/render.js"
+export {
+	setDocument
+} from "./src/util"
