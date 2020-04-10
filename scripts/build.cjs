@@ -12,42 +12,43 @@ const dist = path.dirname(minified)
 const clear = fs.remove(dist)
 
 const bundle =
-	clear.then(
-		() => rollup({
+	clear
+		.then(() => rollup({
 			input,
 			plugins: [
 				resolve()
 			]
-		})
-	)
+		}))
 
 const normalOutput =
-	bundle.then(
-		x => x.generate({
+	bundle
+		.then(x => x.generate({
+			format: "umd",
 			name: "vella"
-		})
-			.then(x =>
-				fs.ensureDir(dist).then(
-					fs.writeFile(normal, x.output[0].code)
-				)
+		}))
+		.then(x =>
+			fs.ensureDir(dist).then(
+				fs.writeFile(normal, x.output[0].code)
 			)
-	)
+		)
+
 
 const minifiedOutput =
-	bundle.then(
-		x => x.generate({
+	bundle
+		.then(x => x.generate({
 			plugins: [
 				terser()
 			],
 			sourcemap: true,
+			format: "umd",
 			name: "vella"
-		})
-			.then(x =>
-				fs.ensureDir(dist).then(
-					fs.writeFile(minified, x.output[0].code)
-				)
+		}))
+		.then(x =>
+			fs.ensureDir(dist).then(
+				fs.writeFile(minified, x.output[0].code)
 			)
-	)
+		)
+
 
 Promise.all([minifiedOutput, normalOutput])
 	.catch(console.error)

@@ -1,6 +1,6 @@
 {
     "name": "vella",
-    "version": "0.0.4-pre0",
+    "version": "0.0.4-pre1",
     "description": "stream-based Web framework",
     "type": "module",
     "main": "index.js",
