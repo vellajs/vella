@@ -1,7 +1,7 @@
 import S from "s-js"
 
 import {postpone} from "./postpone.js"
-import {doc} from "./util.js"
+import {doc, absorb} from "./util.js"
 
 export {
 	forEach, toList,
@@ -223,7 +223,7 @@ function emitDynamic(fn) {
 	})
 }
 
-// functio printRanges(r, l = 0) {
+// function printRanges(r, l = 0) {
 // 	p(l, r)
 // 	if (r.parentDOMRange) printRanges(r.parentDOMRange, l + 1)
 // }
@@ -308,17 +308,17 @@ function updateAttrs(el, previous, current, ns, tagName) {
 }
 
 const avoidAsProp = attr =>
-// as attr, they can take units, not as props.
+	// as attr, they can take units, not as props.
 	(attr === "width"
-  || attr === "height"
-  // This was added between Mithril v0.2 and v1, without any explanation I could find
-  || attr === "href"
-  // for form elements, the form property is read-only
-  || attr === "form"
-  // input.list is read-only
-  || attr === "list"
-  // so that we can remove it entirely rather than setting it to `undefined`
-  || attr === "id"
+	|| attr === "height"
+	// This was added between Mithril v0.2 and v1, without any explanation I could find
+	|| attr === "href"
+	// for form elements, the form property is read-only
+	|| attr === "form"
+	// input.list is read-only
+	|| attr === "list"
+	// so that we can remove it entirely rather than setting it to `undefined`
+	|| attr === "id"
 	)
 
 function setAttr(el, k, value, ns, tagName) {
