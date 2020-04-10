@@ -1,7 +1,7 @@
 import S from "s-js"
 
 import {postpone} from "./postpone.js"
-import {doc, absorb} from "./util.js"
+import {absorb, doc} from "./util.js"
 
 export {
 	forEach, toList,
@@ -187,7 +187,7 @@ function emitDynamic(fn) {
 		// if (parentNode.tagName === "UL") console.log("PN1:", parentNode.outerHTML)
 		withRange(rng, () => {
 			withRef(DOMRef(parentNode, nextSibling), () => {
-				emit(fn())
+				emit(absorb(fn))
 				// if (parentNode.tagName === "UL") console.log("PN2:", parentNode.outerHTML)
 				removed = (globalFirstInserted == null)
 				if (remover != null) remover(removed)
@@ -280,7 +280,7 @@ function setAttrs(el, attrs, ns, tagName) {
 	else if (typeof attrs === "function") {
 		let previous = attrsSentinel
 		S(() => {
-			updateAttrs(el, previous, previous = attrs(), ns, tagName)
+			updateAttrs(el, previous, previous = absorb(attrs), ns, tagName)
 		})
 		/*TODO handle stream*/
 	}
@@ -324,7 +324,7 @@ const avoidAsProp = attr =>
 function setAttr(el, k, value, ns, tagName) {
 	if (/^on/.test(k)) el.addEventListener(k.slice(2), value)
 	else if (typeof value === "function") {
-		S(() => {setAttr(el, k, value(), ns, tagName)})
+		S(() => {setAttr(el, k, absorb(value), ns, tagName)})
 	} else {
 		if (value instanceof Value) value = value.value
     
