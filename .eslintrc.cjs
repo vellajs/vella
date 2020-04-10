@@ -10,9 +10,6 @@ module.exports = {
         "ecmaVersion": 2018,
         sourceType: "module",
     },
-    "plugins": [
-        "pygy-sort-imports"
-    ],
     "rules": {
         "accessor-pairs": "error",
         "array-bracket-spacing": [
