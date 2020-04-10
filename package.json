@@ -7,14 +7,25 @@
     "license": "MIT",
     "files": [
         "index.js",
-        "src/*.js"
+        "src/*.js",
+        "dist"
     ],
+    "unpkg": "./dist/vella.min.js",
+    "scripts": {
+        "build": "node scripts/build.cjs",
+        "prepublishOnly": "npm run build"
+    },
     "dependencies": {
         "s-js": "0.4.9"
     },
     "devDependencies": {
+        "@rollup/plugin-commonjs": "11.0.2",
+        "@rollup/plugin-node-resolve": "7.1.1",
         "eslint": "^6.8.0",
+        "fs-extra": "9.0.0",
         "jsdom": "^16.2.0",
-        "ospec": "pygy/ospec#misc-updates-2020"
+        "ospec": "pygy/ospec#misc-updates-2020",
+        "rollup": "2.3.2",
+        "rollup-plugin-terser": "5.3.0"
     }
 }
