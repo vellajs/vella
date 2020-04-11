@@ -12,4 +12,4 @@ export {
 } from "./src/render.js"
 export {
 	setDocument
-} from "./src/util"
+} from "./src/util.js"
