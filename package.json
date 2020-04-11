@@ -13,6 +13,7 @@
     "unpkg": "./dist/vella.min.js",
     "scripts": {
         "build": "node scripts/build.cjs",
+        "lint": "eslint . --cache",
         "prepublishOnly": "npm run build",
         "test": "ospec"
     },
