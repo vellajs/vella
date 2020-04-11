@@ -1,7 +1,6 @@
 "use strict"
 import o from 'ospec'
-import { v } from '../index.js'
-import { setDocument } from '../src/util.js'
+import { v, setDocument } from '../index.js'
 import { vvalid } from './test-helpers.js'
 import jsdom from 'jsdom'
 const { JSDOM } = jsdom
