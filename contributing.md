@@ -24,7 +24,7 @@ For CI deployments, the keybase paper key needs to be added to the repository se
 To deploy simply run:
 
 ```bash
-bash run deploy
+bash run ci deploy
 ```
 
 ##### Adding secrets to keybase
