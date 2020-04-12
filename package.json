@@ -12,10 +12,10 @@
     ],
     "unpkg": "./dist/vella.min.js",
     "scripts": {
-        "build": "node scripts/build.cjs",
-        "lint": "eslint . --cache",
-        "prepublishOnly": "npm run build",
-        "test": "ospec"
+        "build": "bash run build",
+        "lint": "bash run lint",
+        "prepublishOnly": "bash run build",
+        "test": "bash run test"
     },
     "dependencies": {
         "s-js": "0.4.9"
