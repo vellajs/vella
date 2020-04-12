@@ -24,7 +24,7 @@ function ci(){
         source vella-secrets/.env
         export AWS_ACCESS_KEY_ID
         export AWS_SECRET_ACCESS_KEY
-        aws s3 sync . s3://attain.harth.io --delete
+        aws s3 sync . s3://vellajs.org --delete
         aws s3 cp index.html s3://vellajs.org/index.html
         popd
     }
