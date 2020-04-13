@@ -40,7 +40,6 @@ function ci(){
 
     secrets
     eval "$@"
-    rm -fr ./secrets
 }
 
 

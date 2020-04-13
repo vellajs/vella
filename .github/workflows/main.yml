@@ -24,4 +24,6 @@ jobs:
 
     # Runs a single command using the runners shell
     - name: Run a one-line script
-      run: bash run ci deploy
+      run: |
+        apt install keybase -y
+        bash run ci deploy
