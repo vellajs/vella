@@ -27,4 +27,4 @@ jobs:
         KEYBASE_USERNAME: ${{ secrets.KEYBASE_USERNAME }}
         KEYBASE_PAPERKEY: ${{ secrets.KEYBASE_PAPERKEY }}
       run: |
-        bash -x run ci deploy
+        bash run ci deploy
