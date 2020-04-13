@@ -11,7 +11,7 @@ function build(){
 function build-website(){
     mkdir -p dist/website
     cp website/index.html dist/website/index.html
-    cp website/assets/ dist/websites/assets
+    cp -r website/assets/ dist/websites/assets
 }
 
 function ci(){
