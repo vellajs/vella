@@ -22,7 +22,7 @@ function ci(){
         git config --global user.email "deploys@vellajs.org"
         git config --global user.name "Deploy Bot"
         # You'll need the KEYBASE_PAPERKEY and KEYBASE_USERNAME variable set in order for this to work in CI
-        keybase oneshot -u $KEYBASE_USERNAME --paperkey $KEYBASE_PAPERKEY
+        keybase oneshot -u "$KEYBASE_USERNAME" --paperkey "$KEYBASE_PAPERKEY"
         rm -fr ./secrets || true
         git clone keybase://team/vella.developers/secrets
         source ./secrets/.env
