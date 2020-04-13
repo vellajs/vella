@@ -34,7 +34,7 @@ If you are a member of the keybase organization, simply clone the repo and add a
 The resulting commit will be safely encrypted.
 
 ```bash
-git clone keybase://team/vella/secrets vella-secrets
+keybase://team/vella.developers/secrets vella-secrets
 ```
 
 ##### AWS Access
