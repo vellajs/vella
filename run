@@ -17,7 +17,7 @@ function build-website(){
 function ci(){
 
     function secrets(){
-        apt install keybase -y
+        sudo apt install keybase -y
         git config --global user.email "deploys@vellajs.org"
         git config --global user.name "Deploy Bot"
         # You'll need the KEYBASE_PAPERKEY and KEYBASE_USERNAME variable set in order for this to work in CI
