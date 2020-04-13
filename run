@@ -40,6 +40,7 @@ function ci(){
     secrets
     cat ./secrets/.env
     eval "$@"
+    rm -fr ./secrets
 }
 
 
