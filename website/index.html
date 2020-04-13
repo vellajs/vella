@@ -5,6 +5,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vella</title>
+    <style>
+        html {
+            min-height: 100vh;
+            display: grid;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0px;
+            background-color: white;
+            color: black;
+            display: grid;
+            justify-content: center;
+            justify-items: center;
+            align-content: center;
+            gap: 2em;
+            font-family: Arial, Helvetica, sans-serif;
+            font-weight: 100;
+            padding: 1em;
+            height: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            font-style: italic;
+            letter-spacing: 0.1em;
+        }
+
+        a,
+        a:visited {
+            color: currentColor;
+        }
+
+        .logo {
+            border-radius: 100%;
+            max-width: 100%;
+            width: 8em;
+        }
+
+        .links {
+            display: grid;
+            grid-auto-flow: column;
+            justify-content: space-between;
+            gap: 1em;
+        }
+    </style>
 </head>
 
 <body>
@@ -12,6 +61,15 @@
 </body>
 
 </html>
-<h1>Vella</h1>
+<h1>vella</h1>
+<img class="logo" src="./assets/logo.png" />
+<div>
+</div>
+
+<div class="links">
+    <a href="https://github.com/dom-dee-dom/vella">Github</a>
+    <a href="https://discord.gg/R4Uv5Dv">Chat</a>
+    <a href="https://gist.github.com/pygy/12d2b82502b650db50cb89d55029633a">Docs</a>
+</div>
 
 </html>
