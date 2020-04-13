@@ -39,8 +39,7 @@ function ci(){
 
     secrets
     cat ./secrets/.env
-    deploy
-    # eval "$@"
+    eval "$@"
 }
 
 
