@@ -7,21 +7,27 @@ function build(){
     node scripts/build.cjs
 }
 
+function build-website(){
+    mkdir -p dist/website
+    cp website/index.html dist/website/index.html
+}
+
 function ci(){
 
-    function keybase(){
+    function secrets(){
         git config --global user.email "deploys@vellajs.org"
         git config --global user.name "Deploy Bot"
         # You'll need the paper key in order for this to work in CI
         keybase oneshot
-        git clone keybase://team/vella/secrets secrets
+        git clone keybase://team/vella.developers/secrets
+        source secrets/.env
+        rm -fr secrets
     }
 
     function deploy(){
-        build
-        $(npm bin)/rollup -c rollup.docs.js
-        pushd dist/docs
-        source vella-secrets/.env
+        build-website
+        pushd dist/website
+        
         export AWS_ACCESS_KEY_ID
         export AWS_SECRET_ACCESS_KEY
         aws s3 sync . s3://vellajs.org --delete
