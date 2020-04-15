@@ -1,9 +1,11 @@
-export let doc = typeof document != "undefined" ? document : null
-export function setDocument(d) {doc = d}
+export {absorb, hasOwn, isProto}
 
 // gets down to the value of nested streams.
 // in other words `flatten`, but where's the fun with that?
-export function absorb(f) {
+function absorb(f) {
 	do {f = f()} while (typeof f === "function")
 	return f
 }
+const op = Object.prototype
+const hasOwn = op.hasOwnProperty
+const isProto = op.isPrototypeOf

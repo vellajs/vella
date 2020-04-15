@@ -1,7 +1,8 @@
 import S from "s-js"
 
+import {doc, nodeProto, tagCache, win} from "./env.js"
 import {postpone} from "./postpone.js"
-import {absorb, doc} from "./util.js"
+import {absorb, hasOwn, isProto} from "./util.js"
 
 export {
 	forEach, toList,
@@ -17,7 +18,6 @@ export {
 	S_ as S,
 }
 
-const hasOwn = ({}).hasOwnProperty
 
 // stack-managed state
 // currently as decorators (training wheels)
@@ -168,7 +168,7 @@ function emit(node) {
 	else if (node instanceof Cmp) emit(node.tagName(node.attrs, ...node.children));
 	else {
 		//TODO: actual DOM fragments
-		if (node instanceof Node) insert(node)
+		if (node instanceof win.Node) insert(node)
 		else insert(doc.createTextNode(String(node)))
 	}
 }
@@ -267,7 +267,7 @@ function remove(dR) {
 	}
 }
 
-const attrsSentinel = {}
+// const attrsSentinel = {}
 
 function Value(x) {
 	if (!(this instanceof Value)) return new Value(x)
@@ -275,34 +275,11 @@ function Value(x) {
 }
 
 function setAttrs(el, attrs, ns, tagName) {
-	if (skippable(attrs)) return
+	// if (skippable(attrs)) return
 	if (Array.isArray(attrs)) attrs.forEach(a => setAttrs(el, a, ns, tagName))
-	else if (typeof attrs === "function") {
-		let previous = attrsSentinel
-		S(() => {
-			updateAttrs(el, previous, previous = absorb(attrs), ns, tagName)
-		})
-		/*TODO handle stream*/
-	}
 	else {
 		for (const k in attrs) if (hasOwn.call(attrs, k)) {
-			setAttr(el, k, attrs[k], ns, tagName)
-		}
-	}
-}
-
-function updateAttrs(el, previous, current, ns, tagName) {
-	if (Array.isArray(current)) current.forEach((c, i) => {
-		// bug when previous is longer than current (or when previous is not an array?)
-		updateAttrs(el, previous && previous[i] || attrsSentinel, c, ns, tagName)
-	})
-	else {
-		const hasCurrent = !skippable(current)
-		for (const k in current) if (hasOwn.call(current, k)) {
-			setAttr(el, k, current[k], ns, tagName)
-		}
-		for (const k in previous) if (hasOwn.call(previous, k) && (!hasCurrent || !hasOwn.call(current, k))) {
-			removeAttr(el, k, previous[k], ns, tagName)
+			setAttrAndProps(el, k, attrs[k], ns, tagName)
 		}
 	}
 }
@@ -320,13 +297,12 @@ const avoidAsProp = attr =>
 	// so that we can remove it entirely rather than setting it to `undefined`
 	|| attr === "id"
 	)
+		// if (value instanceof Value) value = value.value
 
-function setAttr(el, k, value, ns, tagName) {
+function setAttrAndProps(el, k, value, ns, tagName) {
 	if (/^on/.test(k)) el.addEventListener(k.slice(2), value)
-	else if (typeof value === "function") {
-		S(() => {setAttr(el, k, absorb(value), ns, tagName)})
-	} else {
-		if (value instanceof Value) value = value.value
+	else if (k === "class" || k === "className") setClass(el, value)
+	else {
     
 		if (k.length < 6 && k.slice(0, 6) === "xlink:") el.setAttributeNS("http://www.w3.org/1999/xlink", k.slice(6), value)
 		else if (ns == null && !avoidAsProp(k) && k in el) {
@@ -335,17 +311,32 @@ function setAttr(el, k, value, ns, tagName) {
 			if (tagName === "input" && k === "type") el.setAttribute(k, value)
 			else el[k] = value
 		}
-		else el.setAttribute(k, value)
+		else if (value != null) el.setAttribute(k, value)
 	}
 }
 
-function removeAttr(el, k, value, ns) {
-	if (/^on/.test(k)) el.removeEventListener(k.slice(2), value)
+function setAttr(el, k, v, ns) {
+	if (k.length < 6 && k.slice(0, 6) === "xlink:") el.setAttributeNS("http://www.w3.org/1999/xlink", k.slice(6), value)
+
+}
+
+function setProp(el, k, value, ns, tagName) {
+	
+}
+function setClass(el, value) {
+	if (typeof value === "function") {
+		S((old) => {
+			if (old != null) el.classList.remove(old)
+			const current = absorb(value)
+			el.classList.add(current)
+			return current
+		}, null)
+	}
 	else {
-		if (ns == null && !avoidAsProp(k) && k in el) el[k] = null
-		else el.removeAttribute(k)
+		el.classList.add(value)
 	}
 }
+
 
 function Cmp(tagName, attrs, children) {
 	this.tagName = tagName
@@ -373,58 +364,167 @@ function withNS(ns, fn) {
 	}
 }
 const attrsParser = /([.#])([^.#\[]+)|\[(.+?)(?:\s*=\s*("|'|)((?:\\["'\]]|.)*?)\4)?\]|((?!$))/g
-const attrsCache = Object.create(null)
-function parseAttrs(s) {
-	const cached = attrsCache[s]
-	if (cached) return cached
-  
+
+const defaultAttrsMap = new WeakMap
+
+function parseAndSetAttrs(element, s, ns) {
 	attrsParser.lastIndex = 0
 	let match
 	const attrs = Object.create(null)
 	let j = 0
+	let classes
 	while(match = attrsParser.exec(s)) {
 		if (j++ === 1000) {console.error("attrs parser bug");break}
 		if (match[6]!= null) throw new RangeError(`unexpected attr: ${s.slice(match.index)}`)
 		if (match[1] != null) {
-			if (match[1] === ".") (attrs.class || (attrs.class=[])).push(match[2])
+			if (match[1] === ".") (classes || (classes=[])).push(match[2])
 			else {
-				if ("id" in attrs) throw new RangeError("Can't have two idsCan't have two ids")
-				attrs.id = match[2]
+				element.setAttribute("id", attrs.id=match[2])
 			}
-		} else if (match[3] != null){
-			attrs[match[3]] = match[5] && match[5].replace(/\\(["'])/g, "$1").replace(/\\\\/g, "\\")
+		} else if (match[3] != null) {
+			const key = match[3]
+			const value = match[5] ? match[5].replace(/\\(["'])/g, "$1").replace(/\\\\/g, "\\") : ""
+			if (key === "class") (classes || (classes=[])).push(value)
+			else element.setAttribute(key, attrs[key]=value)
 		}
 	}
-	// p({attrs})
-	if ("class" in attrs) attrs.class = attrs.class.join(" ")
-	return attrsCache[s] = attrs
+	if (classes != null) {
+		classes = attrs.class = classes.join(" ")
+		if (ns != null) element.className = classes
+		else element.setAttribute("class", classes)
+	}
+	defaultAttrsMap.set(element, attrs)
 }
 
-const tagCache = Object.create(null)
-let actual
-function cacheTag(tag) {
-	const end = tag.match(/[ \.#\[]|$/).index
-	const hasAttrs = end !== tag.length
-	return tagCache[tag] = {tag: tag.slice(0, end) || "div", attrs: hasAttrs && parseAttrs(tag.slice(end), 0)}
+
+
+function cacheTag(selector, ns) {
+	const end = selector.match(/[ \.#\[]|$/).index
+	const hasAttrs = end !== selector.length
+	const tagName = hasAttrs ? selector.slice(0, end) : selector
+	const element = tagCache[selector] = ns == null ? doc.createElement(tagName || "div") : doc.createElementNS(ns, tagName)
+	if (hasAttrs) parseAndSetAttrs(element, selector.slice(end), ns)
+	return element
 }
-function checkTag(tag) {
-	actual = tagCache[tag] || cacheTag(tag)
-	return actual.attrs !== false
+
+function makeElement(tag, ns) {
+	const tpl = tagCache[tag] || cacheTag(tag, ns)
+	// console.log({tpl})
+	return tpl.cloneNode()
+}
+
+const aStack = []
+const iStack = []
+
+export function vOpt(tagName, attrs, ...children) {
+	let candidate = attrs
+	let i = 0
+	let is = 0
+	// eslint-disable-next-line no-constant-condition
+	if (Array.isArray(attrs)) while (true) {
+		if (i === candidate.length) {
+			if (is === 0) {
+				candidate = null
+				break
+			}
+			else {
+				--is
+				i = iStack[is]
+				candidate = aStack[is]
+			}
+		}
+		if (Array.isArray(candidate[i])) {
+			iStack[is] = i + 1
+			aStack[is] = candidate
+			candidate = candidate[i]
+			i = 0
+			++is
+		} else {
+			candidate = candidate[i]
+			break
+		}
+		++i
+	}
+	return (
+		candidate == null
+		|| typeof candidate === "string"
+		|| isProto.call(nodeProto, candidate)
+	)
+		? V(tagName, null, attrs, ...children)
+		: V(tagName, attrs, ...children)
+}
+
+const nodeSentinel = Symbol("Node sentinel")
+
+export function vOptSentinel(tagName, attrs, ...children) {
+	let candidate = attrs
+	let i = 0
+	let is = 0
+	// eslint-disable-next-line no-constant-condition
+	if (Array.isArray(attrs)) while (true) {
+		if (i === candidate.length) {
+			if (is === 0) {candidate = null; break}
+			else {
+				--is
+				i = iStack[is]
+				candidate = aStack[is]
+			}
+		}
+		if (Array.isArray(candidate[i])) {
+			iStack[is] = i + 1
+			aStack[is] = candidate
+			candidate = candidate[i]
+			i = 0
+			++is
+		} else {
+			candidate = candidate[i]
+			break
+		}
+		++i
+	}
+	let type
+	return (
+		candidate == null
+		|| (type = typeof candidate) === "string"
+		|| type === "function"
+		|| hasOwn.call(candidate, nodeSentinel)
+		|| nodeProto.isPrototypeOf(candidate)
+	)
+		? V(tagName, null, attrs, ...children)
+		: V(tagName, attrs, ...children)
+}
+
+
+export function vv(tagName, attrs, ...children) {
+	if (attrs === v) return V(tagName, null, ...children)
+	else return V(tagName, attrs, ...children)
 }
 
 function v(tagName, attrs, ...children) {
-	if (typeof tagName === "string" && checkTag(tagName)) {
-		tagName = actual.tag
-		attrs = [actual.attrs, attrs]
-	}
 	return V(tagName, attrs, ...children)
+}
+
+export function vc(tagName, ...children) {
+	return V(tagName, null, ...children)
+}
+
+const attrsSentinel = Symbol("Attrs sentinel")
+
+export function va(tagName, attrs, ...children) {
+	if (attrs == null || hasOwn.call(attrs, attrsSentinel)) return V(tagName, attrs, ...children)
+	else return V(tagName, null, attrs, ...children)
+}
+
+export function a(attrs) {
+	if (attrs != null) attrs[attrsSentinel] = true
+	return attrs
 }
 
 function V(tagName, attrs, ...children) {
 	// if (debug) debugger
 	if (typeof tagName === "function") return new Cmp(tagName, attrs, children)
 	else if (typeof tagName !== "string") throw new RangeError("string or function expected as tagName, got " + typeof tagName)
-	const el = globalNS == null ? doc.createElement(tagName) : doc.createElementNS(globalNS, tagName)
+	const el = makeElement(tagName, globalNS)
 	setAttrs(el, attrs, globalNS, tagName)
 	withRef(DOMRef(el, null), () => {
 		withoutRange(() => {

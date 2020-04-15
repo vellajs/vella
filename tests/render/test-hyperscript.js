@@ -1,7 +1,16 @@
 import o from "ospec"
-import {v} from "../../index.js"
+import {setWindow as setVellaWindow, v} from "../../index.js"
+import jsdom from "jsdom"
+
+// import {e, matchDOM, setWindow as setMDWindow} from "../../test-util/matchDOM.js"
 
 o.spec("hyperscript", () => {
+	let win
+	o.beforeEach(() => {
+		win = new jsdom.JSDOM().window
+		setVellaWindow(win)
+		// setMDWindow(win)
+	})
 	o.spec("selector", () => {
 		o("throws on null selector", (done) => {
 			try {v(null)} catch(e) {done()}
@@ -60,7 +69,7 @@ o.spec("hyperscript", () => {
 			const element = v("[x][a='[b]'].c")
 
 			o(element.tagName).equals("DIV")
-			o(element.getAttribute("x")).equals(true)
+			o(element.getAttribute("x")).equals("")
 			o(element.getAttribute("a")).equals("[b]")
 			o(element.className).equals("c")
 		})
@@ -124,7 +133,7 @@ o.spec("hyperscript", () => {
 			const element = v("[a]")
 
 			o(element.tagName).equals("DIV")
-			o(element.getAttribute("a")).equals(true)
+			o(element.getAttribute("a")).equals("")
 		})
 		o("handles explicit empty string value for input", function() {
 			const element = v('input[value=""]')
@@ -262,7 +271,6 @@ o.spec("hyperscript", () => {
 				toString: () => "toString"
 			}
 			const element = v("custom-element" + className, {className: className})
-
 			o(element.className).equals("valueOf toString")
 		})
 	})
@@ -525,12 +533,13 @@ o.spec("hyperscript", () => {
 		})
 		o("non-nullish attr takes precedence over selector", function() {
 		})
-		o("null attr takes precedence over selector", function() {
-			o(v("[a=b]", {a: null}).getAttribute("a")).equals(null)
-		})
-		o("undefined attr takes precedence over selector", function() {
-			o(v("[a=b]", {a: undefined}).getAttribute("a")).equals(undefined)
-		})
+		// https://github.com/dom-dee-dom/vella/issues/23
+		// o("null attr takes precedence over selector", function() {
+		// 	o(v("[a=b]", {a: null}).getAttribute("a")).equals(null)
+		// })
+		// o("undefined attr takes precedence over selector", function() {
+		// 	o(v("[a=b]", {a: undefined}).getAttribute("a")).equals(undefined)
+		// })
 		//o("handles fragment childNodes without attr unwrapped", function() {
 		//	const element = v("div", [v("i")], [v("s")])
 		//

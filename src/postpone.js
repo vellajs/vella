@@ -1,6 +1,5 @@
-import {doc} from "./util.js"
-
-const hasOwn = {}.hasOwnProperty
+import {doc} from "./env.js"
+import {hasOwn} from "./util.js"
 
 let scheduled
 function Scheduled() {
