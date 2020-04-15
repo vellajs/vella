@@ -5,4 +5,3 @@ const {JSDOM} = jsdom
 const {Node, document} = new JSDOM().window
 global.Node = Node
 setDocument(document)
-//
