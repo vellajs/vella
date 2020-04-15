@@ -1,0 +1,21 @@
+name: Publish Website
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - uses: actions/checkout@v2
+
+    - name: Build and Deploy Website
+      env:
+        KEYBASE_USERNAME: ${{ secrets.KEYBASE_USERNAME }}
+        KEYBASE_PAPERKEY: ${{ secrets.KEYBASE_PAPERKEY }}
+      run: bash run ci deploy

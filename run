@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# See: https://james-forbes.com/#!/posts/alternative-to-npm-scripts
+export PATH=./node_modules/.bin:$PATH
+
+function build(){
+    rm -fr dist || true
+    node scripts/build.cjs
+}
+
+function build-website(){
+    mkdir -p dist/website
+    cp website/index.html dist/website/index.html
+    cp -r website/assets/ dist/websites/assets
+}
+
+function ci(){
+
+    function secrets(){
+        curl --remote-name https://prerelease.keybase.io/keybase_amd64.deb
+        sudo apt install ./keybase_amd64.deb -y
+        git config --global user.email "deploys@vellajs.org"
+        git config --global user.name "Deploy Bot"
+        # You'll need the KEYBASE_PAPERKEY and KEYBASE_USERNAME variable set in order for this to work in CI
+        keybase oneshot -u "$KEYBASE_USERNAME" --paperkey "$KEYBASE_PAPERKEY"
+        rm -fr ./secrets || true
+        git clone keybase://team/vella.developers/secrets
+        source ./secrets/.env
+    }
+
+    function env(){
+        AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY "$@"
+    }
+
+    function deploy(){
+        build-website
+        pushd dist/website
+        env aws s3 sync . s3://vellajs.org --delete
+        env aws s3 cp index.html s3://vellajs.org/index.html
+        popd
+    }
+
+    secrets && \
+    eval "$@"
+}
+
+
+function lint(){
+    eslint . --cache
+}
+
+function test(){
+    ospec
+}
+
+eval "$@"
