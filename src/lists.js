@@ -1,7 +1,7 @@
 // /* global p */
 // import S from "s-js"
 import {DOMRef, S, emitWithDOMRange, globalDOM, globalRange, onRender, remove, toList, v, withRange, withRef} from "./render.js"
-import {doc} from "./util.js"
+import {doc} from "./env.js"
 
 const sentinel = {keys: [], refs: []}
 

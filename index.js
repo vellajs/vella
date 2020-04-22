@@ -11,5 +11,5 @@ export {
 	S
 } from "./src/render.js"
 export {
-	setDocument
-} from "./src/util.js"
+	setWindow
+} from "./src/env.js"
