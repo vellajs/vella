@@ -3,6 +3,7 @@ import {setWindow as setVellaWindow, v} from "../../index.js"
 import jsdom from "jsdom"
 
 // import {e, matchDOM, setWindow as setMDWindow} from "../../test-util/matchDOM.js"
+// TODO: test both `v` and `V` where it makes sense.
 
 o.spec("hyperscript", () => {
 	let win
@@ -275,8 +276,9 @@ o.spec("hyperscript", () => {
 		})
 	})
 	o.spec("childNodes", function() {
+		// TODO: use bare values, not arrays as children
 		o("handles string single child", function() {
-			const element = v("div", {}, ["a"])
+			const element = v("div", {}, "a")
 
 			o(element.textContent).equals("a")
 		})
@@ -299,25 +301,21 @@ o.spec("hyperscript", () => {
 			const element = v("div", {}, [true])
 
 			o(element.childNodes.length).equals(0)
-			//o(element.childNodes).deepEquals([null])
 		})
 		o("handles falsy boolean single child", function() {
 			const element = v("div", {}, [false])
 
 			o(element.childNodes.length).equals(0)
-			//o(element.childNodes).deepEquals([null])
 		})
 		o("handles null single child", function() {
 			const element = v("div", {}, [null])
 
 			o(element.childNodes.length).equals(0)
-			//o(element.childNodes).deepEquals([null])
 		})
 		o("handles undefined single child", function() {
 			const element = v("div", {}, [undefined])
 
 			o(element.childNodes.length).equals(0)
-			//o(element.childNodes).deepEquals([null])
 		})
 		o("handles multiple string childNodes", function() {
 			const element = v("div", {}, ["", "a"])
@@ -333,14 +331,10 @@ o.spec("hyperscript", () => {
 
 			const children = element.childNodes || []
 
-			if (children.length) {
-				o(children[0].textContent).equals("0")
-				o(children[1].textContent).equals("1")
-			}
-			//o(element.childNodes[0].tagName).equals("#")
-			//o(element.childNodes[0].childNodes).equals("0")
-			//o(element.childNodes[1].tagName).equals("#")
-			//o(element.childNodes[1].childNodes).equals("1")
+			o(children[0].nodeType).equals(3)
+			o(children[0].textContent).equals("0")
+			o(children[0].nodeType).equals(3)
+			o(children[1].textContent).equals("1")
 		})
 		o("handles multiple boolean childNodes", function() {
 			const element = v("div", {}, [false, true])
@@ -495,25 +489,23 @@ o.spec("hyperscript", () => {
 				o(children[1].textContent).equals("d")
 			}
 		})
-		//o("handles childNodes without attr", function() {
-		//	const element = v("div", [v("i"), v("s")])
-		//
-		//	//o(element.attrs).equals(null)
-		//	o(children[0].tagName).equals("I")
-		//	o(children[1].tagName).equals("S")
-		//})
-		//o("handles child without attr unwrapped", function() {
-		//	const element = v("div", v("i"))
-		//
-		//	o(children[0].tagName).equals("I")
-		//})
-		//o("handles childNodes without attr unwrapped", function() {
-		//	const element = v("div", v("i"), v("s"))
-		//
-		//	//o(element.attrs).equals(null)
-		//	o(children[0].tagName).equals("I")
-		//	o(children[1].tagName).equals("S")
-		//})
+		o("handles childNodes without attr", function() {
+			const {children} = v("div", [v("i"), v("s")])
+		
+			o(children[0].tagName).equals("I")
+			o(children[1].tagName).equals("S")
+		})
+		o("handles child without attr unwrapped", function() {
+			const {children} = v("div", v("i"))
+		
+			o(children[0].tagName).equals("I")
+		})
+		o("handles childNodes without attr unwrapped", function() {
+			const {children} = v("div", v("i"), v("s"))
+		
+			o(children[0].tagName).equals("I")
+			o(children[1].tagName).equals("S")
+		})
 		o("handles shared attrs", function() {
 			const attrs = {a: "b"}
 
@@ -533,19 +525,18 @@ o.spec("hyperscript", () => {
 		})
 		o("non-nullish attr takes precedence over selector", function() {
 		})
-		// https://github.com/dom-dee-dom/vella/issues/23
-		// o("null attr takes precedence over selector", function() {
-		// 	o(v("[a=b]", {a: null}).getAttribute("a")).equals(null)
-		// })
-		// o("undefined attr takes precedence over selector", function() {
-		// 	o(v("[a=b]", {a: undefined}).getAttribute("a")).equals(undefined)
-		// })
-		//o("handles fragment childNodes without attr unwrapped", function() {
-		//	const element = v("div", [v("i")], [v("s")])
-		//
-		//	o(children[0].tagName).equals("I")
-		//	o(children[1].tagName).equals("S")
-		//})
+		o("null attr takes precedence over selector", function() {
+			o(v("[a=b]", {a: null}).getAttribute("a")).equals(null)
+		})
+		o("undefined attr takes precedence over selector", function() {
+			o(v("[a=b]", {a: undefined}).getAttribute("a")).equals(null)
+		})
+		o("handles fragment childNodes without attr unwrapped", function() {
+			const element = v("div", [v("i")], [v("s")])
+		
+			o(element.children[0].tagName).equals("I")
+			o(element.children[1].tagName).equals("S")
+		})
 		o("handles childNodes with nested array", function() {
 			const element = v("div", {}, [[v("i"), v("s")]])
 			const children = element.childNodes || []

@@ -1,8 +1,10 @@
 // /* global p */
 // import S from "s-js"
-import {DOMRef, S, emitWithDOMRange, globalDOM, globalRange, onRender, remove, toList, v, withRange, withRef} from "./render.js"
 import {doc} from "./env.js"
-
+import {DOMRef, emitWithNodeRange, globalDOM, globalRange, onRender, remove, toList, withRange, withRef} from "./render.js"
+// TODO use V
+import {S} from "./S.js"
+import {v} from "./v.js"
 const sentinel = {keys: [], refs: []}
 
 function normalizeHooks(hooks) {
@@ -129,14 +131,14 @@ export function update(
 				// first render, no need to set the stack context.
 				keys.forEach((key, i) => {
 					const index = hasIndices ? S.value(i) : null
-					S.root((dispose) => { refs[i] = {dispose, range: emitWithDOMRange(render(key, index)), index} })
+					S.root((dispose) => { refs[i] = {dispose, range: emitWithNodeRange(render(key, index)), index} })
 				})
 			} else {
 				withRange(parentDOMRange, () => {
 					withRef(DOMRef(parentNode, nextSibling), () => {
 						keys.forEach((key, i) => {
 							const index = hasIndices ? S.value(i) : null
-							S.root((dispose) => {refs[i] = {dispose, range: emitWithDOMRange(render(key, index)), index} })
+							S.root((dispose) => {refs[i] = {dispose, range: emitWithNodeRange(render(key, index)), index} })
 						})
 					})
 				})
@@ -195,7 +197,7 @@ export function update(
 			// p("adding", parentNode, nextSibling)
 			withRange(parentDOMRange, () => {
 				withRef(DOMRef(parentNode, nextSibling), () => {
-					for (let i = ks; i <= ke; i++) S.root((dispose) => { refs[i] = {dispose, range: emitWithDOMRange(render(keys[i]))} })
+					for (let i = ks; i <= ke; i++) S.root((dispose) => { refs[i] = {dispose, range: emitWithNodeRange(render(keys[i]))} })
 				})
 			})
 		} else {
@@ -225,7 +227,7 @@ export function update(
 				withRef(DOMRef(parentNode, nextSibling), () => {
 					if (matched === 0) {
 						// p("just adding")
-						for (let i = ks; i <= ke; i++) S.root((dispose) => { refs[i] = {dispose, range: emitWithDOMRange(render(keys[i]))} })
+						for (let i = ks; i <= ke; i++) S.root((dispose) => { refs[i] = {dispose, range: emitWithNodeRange(render(keys[i]))} })
 					} else {
 						// p("going LIS", JSON.stringify({pos: positionSoFar, matched, oldIndices, refs: refs.map(first), oldRefs: oldRefs.map(first), oldMap: oldMap.map}))
           
@@ -248,7 +250,7 @@ export function update(
 									// p({ans: globalDOM.nextSibling.textContent})
 									S.root((dispose) => {
 										const index = hasIndices ? S.value(i) : null
-										refs[i] = {dispose, range: emitWithDOMRange(render(keys[i], index)), index}
+										refs[i] = {dispose, range: emitWithNodeRange(render(keys[i], index)), index}
 									})
 									// p(JSON.stringify({i, li, ks, oi, oldIndices}))
 								} else {
@@ -285,7 +287,7 @@ export function update(
 
 									S.root((dispose) => {
 										const index = hasIndices ? S.value(i) : null
-										refs[i] = {dispose, range: emitWithDOMRange(render(keys[i], index)), index}
+										refs[i] = {dispose, range: emitWithNodeRange(render(keys[i], index)), index}
 									})
 								} else {
 									if (hasIndices) refs[i].index(i)
