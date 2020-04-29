@@ -1,15 +1,13 @@
+export {setWindow} from "./src/env.js"
 export {List, list} from "./src/lists.js"
 export {
 	forEach, toList,
 
-	boot, v, V,
+	boot,
 	beforeRemove, onRender, onReflow,
-	withNS, Value,
 
-	emit, emitWithDOMRange,
+	emit, emitWithNodeRange,
 
-	S
 } from "./src/render.js"
-export {
-	setWindow
-} from "./src/env.js"
+export {S} from "./src/S.js"
+export {v, V} from "./src/v.js"

@@ -11,3 +11,7 @@ export function setWindow(w) {
 }
 
 if (typeof window != "undefined") setWindow(window)
+
+export const isFF = win != null && typeof sidebar != "undefined"
+// eslint-disable-next-line no-implicit-coercion
+export const isChrome = win != null && !!win.chrome

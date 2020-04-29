@@ -18,7 +18,7 @@
         "test": "bash run test"
     },
     "dependencies": {
-        "s-js": "0.4.9"
+        "s-js": "adamhaile/S"
     },
     "devDependencies": {
         "@rollup/plugin-commonjs": "11.0.2",
