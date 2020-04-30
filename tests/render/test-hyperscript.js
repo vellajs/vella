@@ -2,44 +2,54 @@ import o from "ospec"
 import {V, setWindow as setVellaWindow, v} from "../../index.js"
 import jsdom from "jsdom"
 
-// import {e, matchDOM, setWindow as setMDWindow} from "../../test-util/matchDOM.js"
+import {e, matchDOM, setWindow as setMDWindow} from "../../test-util/matchDOM.js"
 
 o.spec("hyperscript", () => {
 	let win
 	o.beforeEach(() => {
 		win = new jsdom.JSDOM().window
 		setVellaWindow(win)
-		// setMDWindow(win)
+		setMDWindow(win)
 	})
 	o.spec("common for v and V", () => {
 		[{v}, {V}].forEach((x) => {
 			const [[name, v]] = Object.entries(x)
 			o.spec(name, () => {
-				o.spec("selector", () => {
+				o.spec("invalid first argument", () => {
+					// sanity check before diving in
+					o("binding null as context with a valid selector", () => {
+						const actual = v.bind(null, "a")()
+						const expected = e("a")
+
+						o(actual).satisfies(matchDOM(expected))
+					})
+
 					o("throws when called with no arguments", () => {
 						o(v).throws(Error)
 					})
-					o("throws on undefined selector", () => {
+					o("throws on undefined argument", () => {
 						o(v.bind(null, undefined)).throws(Error)
 					})
-					o("throws on null selector", () => {
+					o("throws on null argument", () => {
 						o(v.bind(null, null)).throws(Error)
 					})
-					o("throws on number selector", () => {
+					o("throws on number argument", () => {
 						o(v.bind(null, 3)).throws(Error)
 					})
-					o("throws on true selector", () => {
+					o("throws on true argument", () => {
 						o(v.bind(null, true)).throws(Error)
 					})
-					o("throws on false selector", () => {
+					o("throws on false argument", () => {
 						o(v.bind(null, false)).throws(Error)
 					})
-					o("throws on object selector", () => {
+					o("throws on object argument", () => {
 						o(v.bind(null, {})).throws(Error)
 					})
-					o("throws on element selector", () => {
+					o("throws on element argument", () => {
 						o(v.bind(null, win.document.createElement("a"))).throws(Error)
 					})
+				})
+				o.spec("selector", () => {
 					o("handles tagName in selector", () => {
 						const element = v("a")
 						o(element.tagName).equals("A")
@@ -685,17 +695,6 @@ o.spec("hyperscript", () => {
 			o(element.getAttribute("a")).equals("b")
 			const children = element.childNodes || []
 	
-			if (children.length) {
-				o(children[0].textContent).equals("c")
-				o(children[1].textContent).equals("d")
-			}
-		})
-		o("handles attr and text childNodes unwrapped", function() {
-			const element = v("div", {a: "b"}, "c", "d")
-
-			o(element.getAttribute("a")).equals("b")
-			const children = element.childNodes || []
-
 			if (children.length) {
 				o(children[0].textContent).equals("c")
 				o(children[1].textContent).equals("d")
