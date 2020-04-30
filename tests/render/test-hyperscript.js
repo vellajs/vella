@@ -3,7 +3,6 @@ import {V, setWindow as setVellaWindow, v} from "../../index.js"
 import jsdom from "jsdom"
 
 // import {e, matchDOM, setWindow as setMDWindow} from "../../test-util/matchDOM.js"
-// TODO: test both `v` and `V` where it makes sense.
 
 o.spec("hyperscript", () => {
 	let win
