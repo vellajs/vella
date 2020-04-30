@@ -111,7 +111,10 @@ function v(tagName, attrs, ...children) {
 
 
 function V(tagName, attrs, children) {
-	if (typeof tagName === "function") return component(tagName, attrs, children)
+	if (typeof tagName === "function") {
+		const needsDefaultAttrs = attrs == null || typeof attrs !== "object"
+		return component(tagName, needsDefaultAttrs ? {} : attrs, children)
+	}
 	else if (typeof tagName === "string") return element(tagName, attrs, children)
 	else throw new RangeError("string or function expected as tagName, got " + typeof tagName)
 }

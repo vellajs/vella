@@ -1,5 +1,5 @@
 import {S} from "./S.js"
-import {absorb, hasOwn} from "./util.js"
+import {absorb, hasOwn, skippable} from "./util.js"
 
 export {setAttrs}
 
@@ -17,10 +17,6 @@ const avoidAsProp = attr =>
 	|| attr === "id"
 	)
 
-let hasDynAttrs = false
-let dynAttrs = null
-let hasDynProps = false
-let dynProps = null
 
 function setAttrs(el, attrs, ns, tagName) {
 	if (Array.isArray(attrs)) setAttrsArray(el, attrs, ns, tagName, true)
@@ -29,7 +25,7 @@ function setAttrs(el, attrs, ns, tagName) {
 
 
 function setAttrsArray(el, attrs, ns, tagName, first) {
-	if (first) hasDynAttrs = hasDynProps = false
+	if (first) dynAttrs = dynProps = null
 	attrs.forEach(a => (
 		Array.isArray(a)
 			? setAttrsArray(el, a, ns, tagName, false)
@@ -41,7 +37,7 @@ function setAttrsObject(el, attrs, ns, tagName, hasOverrides) {
 	for (const k in attrs) if (hasOwn.call(attrs, k)) {
 		if (k === "on") setEvents(el, attrs[k])
 		else if (k === "class" || k === "className") setClass(el, attrs[k])
-		else if (k === "style" && typeof value !== "string") setStyle(el, k, attrs[k])
+		else if (k === "style" && typeof value !== "string") setStyle(el, k, attrs[k], hasOverrides)
 		else if (k === "$props") Object.keys(attrs.$props).forEach(k => setAttr(el, k, attrs.$props[k], hasOverrides))
 		else if (k === "$attrs") Object.keys(attrs.$attrs).forEach(k => setProp(el, k, attrs.$attrs[k], hasOverrides))
 		else if (ns == null && !avoidAsProp(k) && k in el) setProp(el, k, el[k], hasOverrides)
@@ -49,16 +45,16 @@ function setAttrsObject(el, attrs, ns, tagName, hasOverrides) {
 	}
 }
 
+let dynProps = null
 function setProp(el, k, v, hasOverrides) {
 	let dyn
-	if (hasOverrides && hasDynProps && (dyn = dynProps[k]) != null) {
+	if (hasOverrides && dynProps != null && (dyn = dynProps[k]) != null) {
 		S.disposeNode(dyn)
 	}
 	if (typeof v === "function") {
 		const {node} = S.makeComputationNode(() => el[k] = absorb(v), null, false, false)
 		if (node != null && hasOverrides) {
-			if (!hasDynProps) {
-				hasDynProps = true
+			if (dynProps == null) {
 				dynProps = Object.create(null)
 			}
 			dynProps[k] = node
@@ -68,24 +64,24 @@ function setProp(el, k, v, hasOverrides) {
 	}
 }
 
+let dynAttrs = null
 function setAttr(el, k, v, hasOverrides) {
 	// TODO: handle namespaces
 	// if (k.length < 6 && k.slice(0, 6) === "xlink:") el.setAttributeNS("http://www.w3.org/1999/xlink", k.slice(6), value)
 
 	let dyn
-	if (hasOverrides && hasDynAttrs && (dyn = dynAttrs[k]) != null) {
+	if (hasOverrides && dynAttrs != null && (dyn = dynAttrs[k]) != null) {
 		S.disposeNode(dyn)
 	}
 	if (typeof v === "function") {
 		const {node} = S.makeComputationNode(() => {
-			const now = absorb(v)
+			const value = absorb(v)
 			// remove no matter what, there may be a value set by a previous attrs object
-			if (now == null) el.removeAttribute(k)
-			else el.setAttribute(k, now)
+			if (value == null) el.removeAttribute(k)
+			else el.setAttribute(k, value)
 		}, null, false, false)
 		if (node != null && hasOverrides) {
-			if (!hasDynAttrs) {
-				hasDynAttrs = true
+			if (dynAttrs == null) {
 				dynAttrs = Object.create(null)
 			}
 			dynProps[k] = node
@@ -132,9 +128,77 @@ function eventHelper(el, events, method) {
 	}
 }
 
-function setStyle(el, style) {
-	setStyleObject(el, style)
+let dynStyle = null
+let dynStyleProps = null
+
+function setStyle(el, style, hasOverrides) {
+	if (hasOverrides && dynStyle != null) {
+		S.disposeNode(dynStyle)
+		dynStyle = null
+	}
+	const type = typeof style
+	if (type === "object" || style != null) {
+		el.style = ""
+		for (const prop in style) if (hasOwn.call(style, prop)) {
+			if (prop.length < 2 || prop[0] === "-" && prop[1] === "-") setStyleCustomProperty(el, prop, style[prop], hasOverrides)
+			else setStyleProperty(el, prop, style[prop], hasOverrides)
+		}
+	} else if (type === "function") {
+		if (dynStyleProps != null) {
+			for (const dsp in dynStyleProps) if (hasOwn.call(dynStyleProps, dsp)) S.dispose(dynStyleProps[dsp])
+			dynStyleProps = null
+		}
+		const {node} = S.makeComputationNode(() => {
+			const value = absorb(style)
+			el.style = skippable(value) ? "" : value
+		}, null, false, false)
+		if (node != null && hasOverrides) {
+			dynStyle = node
+		}
+	} else {
+		el.style = skippable(style) ? "" : style
+	}
+	
 }
-function setStyleObject(/*el, style*/) {
-	// TODO
+
+function setStyleProperty(el, prop, v, hasOverrides) {
+	let dyn
+	if (hasOverrides && dynStyleProps != null && (dyn = dynStyleProps[prop]) != null) {
+		S.disposeNode(dyn)
+		dynStyleProps[prop] = null
+	}
+	if (typeof v === "function") {
+		const {node} = S.makeComputationNode(() => {
+			const value = absorb(v)
+			el.style[prop] = skippable(value) ? "" : value
+		}, null, false, false)
+		if (node != null && hasOverrides) {
+			if (dynStyleProps == null) dynStyleProps = {}
+			dynStyleProps[prop] = node
+		}
+		dynStyleProps[prop] = node
+	} else {
+		el.style[prop] = skippable(v) ? "" : v
+	}
+}
+
+function setStyleCustomProperty(el, prop, v, hasOverrides) {
+	let dyn
+	if (hasOverrides && dynStyleProps != null && (dyn = dynStyleProps[prop]) != null) {
+		S.disposeNode(dyn)
+		dynStyleProps[prop] = null
+	}
+	if (typeof v === "function") {
+		const {node} = S.makeComputationNode(() => {
+			const value = absorb(v)
+			el.style.setProperty(prop, skippable(value) ? "" : value)
+		}, null, false, false)
+		if (node != null && hasOverrides) {
+			if (dynStyleProps == null) dynStyleProps = {}
+			dynStyleProps[prop] = node
+		}
+		dynStyleProps[prop] = node
+	} else {
+		el.style.setProperty(prop, skippable(v) ? "" : v)
+	}
 }
