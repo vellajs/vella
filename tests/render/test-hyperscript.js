@@ -1,13 +1,11 @@
 import o from "ospec"
 import {V, setWindow as setVellaWindow, v} from "../../index.js"
-import jsdom from "jsdom"
-
 import {e, matchDOM, setWindow as setMDWindow} from "../../test-util/matchDOM.js"
+import {refreshWindow, win} from "../test-setup.js"
 
 o.spec("hyperscript", () => {
-	let win
 	o.beforeEach(() => {
-		win = new jsdom.JSDOM().window
+		refreshWindow()
 		setVellaWindow(win)
 		setMDWindow(win)
 	})

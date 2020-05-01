@@ -1,5 +1,28 @@
+import o from "ospec"
+export {win, doc, refreshWindow}
 
-// const win = new jsdom.JSDOM().window
-
-// global.Node = win.Node
-// setWindow(win)
+let win
+let doc
+let refreshWindow
+let currentRoot
+o.before(() => {
+	if (typeof window !== "undefined") {
+		let current
+		refreshWindow = function() {
+			if (currentRoot) current.parentElement.removeChild(current)
+			document.body.appendChild(currentRoot = document.createElement("iframe"))
+			win = currentRoot.contentDocument.defaultView
+			doc = win.document
+		}
+	} else {
+		return import("jsdom").then(({default: jsdom}) => {
+			refreshWindow = () => {
+				win = new jsdom.JSDOM().window
+				doc = win.document
+			}
+		})
+	}
+})
+o.after(() => {
+	if (currentRoot != null) currentRoot.parentElement.removeChild(currentRoot)
+})
