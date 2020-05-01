@@ -162,14 +162,9 @@ o.spec("matchDOM", function() {
 				)).deepEquals(PASS)
 
 				o(matchDOM(
-					e("div", {hasAttrs:["foo"]}, []))(
-					h("div", {attrs:{foo:5}}, [])
+					e("div", {hasAttrs: ["foo"]}, []))(
+					h("div", {attrs:{foo: 5}}, [])
 				)).deepEquals(PASS)
-
-				o(matchDOM(
-					e("div", {hasAttrs:["foo"]}, []))(
-					h("div", {attrs:{}}, [])
-				)).satisfies(failure())
 
 				o(matchDOM(
 					e("div", {hasAttrs:[{foo: "5"}]}, []))(
@@ -220,6 +215,53 @@ o.spec("matchDOM", function() {
 					e("div", {hasAttrs:[{class: "c b"}]}, []))(
 					h("div", {attrs:{class: "b  a"}}, [])
 				)).satisfies(failure())
+
+				o(matchDOM(
+					e("div", {hasAttrs:["foo"]}, []))(
+					h("div", {attrs:{}}, [])
+				)).satisfies(failure(
+					`<div></div>
+
+div[foo]: attribute expected, but not found`
+				))
+
+				o(matchDOM(
+					e("div", {hasAttrs: []}, []))(
+					h("div", {attrs:{foo: "5"}}, [])
+				)).satisfies(failure(
+					`<div foo="5"></div>
+
+div[foo]: unexpected attribute, with value "5"`
+				))
+
+				o(matchDOM(
+					e("div", {}, []))(
+					h("div", {attrs:{foo: "5"}}, [])
+				)).satisfies(failure(
+					`<div foo="5"></div>
+
+div[foo]: unexpected attribute, with value "5"`
+				))
+
+				o(matchDOM(
+					e("div", {}, []))(
+					h("div", {attrs:{foo: "5", bar: "6"}}, [])
+				)).satisfies(failure(
+					`<div foo="5" bar="6"></div>
+
+div[foo]: unexpected attribute, with value "5"
+div[bar]: unexpected attribute, with value "6"`
+				))
+
+				o(matchDOM(
+					e("div", {hasAttrs: {bar: "6"}}, []))(
+					h("div", {attrs:{foo: 5}}, [])
+				)).satisfies(failure(
+					`<div foo="5"></div>
+
+div[bar]: attribute expected to be "6", not null
+div[foo]: unexpected attribute, with value "5"`
+				))
 			})
 			o("hasProps", () => {
 				o(matchDOM(
@@ -273,54 +315,19 @@ o.spec("matchDOM", function() {
 				)).satisfies(failure())
 
 				o(matchDOM(
-					e("div", {hasProps:[{className: "a b"}]}, []))(
+					e("div", {hasProps:[{className: "a b"}], hasAttrs:{class: "a b"}}, []))(
 					h("div", {attrs:{class: "a b"}}, [])
 				)).deepEquals(PASS)
 
 				o(matchDOM(
-					e("div", {hasProps:[{className: " a b"}]}, []))(
+					e("div", {hasProps:[{className: " a b "}], hasAttrs:{class: "a b"}}, []))(
 					h("div", {attrs:{class: "b   a"}}, [])
 				)).deepEquals(PASS)
 
 				o(matchDOM(
-					e("div", {hasProps:[{className: " a b"}]}, []))(
+					e("div", {hasProps:[{className: "a b"}], hasAttrs:{class: "a c"}}, []))(
 					h("div", {attrs:{class: "c   a"}}, [])
 				)).satisfies(failure())
-			})
-			o("lacksAttrs", () => {
-				o(matchDOM(
-					e("div", {lacksAttrs:[]}))(
-					h("div")
-				)).deepEquals(PASS)
-
-				o(matchDOM(
-					e("div", {lacksAttrs:["foo"]}))(
-					h("div")
-				)).deepEquals(PASS)
-        
-				o(matchDOM(
-					e("div", {lacksAttrs:["foo"]}))(
-					h("div", {props: {foo: 5}})
-				)).deepEquals(PASS)
-        
-				o(matchDOM(
-					e("div", {lacksAttrs:["foo"]}))(
-					h("div", {attrs:{foo: 6}})
-				)).satisfies(failure(
-					`<div foo="6"></div>
-
-div[foo]: unexpected attribute, with value "6"`
-				))
-        
-				o(matchDOM(
-					e("div", {lacksAttrs:["foo", "bar"]}))(
-					h("div", {attrs:{foo: 6, bar: 7}})
-				)).satisfies(failure(
-					`<div foo="6" bar="7"></div>
-
-div[foo]: unexpected attribute, with value "6"
-div[bar]: unexpected attribute, with value "7"`
-				))
 			})
 			o("lacksProps", () => {
 				o(matchDOM(
@@ -334,7 +341,7 @@ div[bar]: unexpected attribute, with value "7"`
 				)).deepEquals(PASS)
         
 				o(matchDOM(
-					e("div", {lacksProps:["foo"]}))(
+					e("div", {lacksProps:["foo"], hasAttrs:({foo: "5"})}))(
 					h("div", {attrs: {foo: 5}})
 				)).deepEquals(PASS)
         

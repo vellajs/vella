@@ -43,6 +43,15 @@ const defaultAttrs = {
 	hasEvent: null,
 	lacksEvent: null
 }
+
+function validateHasAttrsObject(a) {
+	for (const [k, v] of Object.entries(a)) {
+		if (typeof v !== "string") throw new TypeError(
+			`string expected as a value for ${str(k)} in ${str(a)}`
+		)
+	}
+}
+
 export function e(tagName, attrs = {}, children = []) {
 	if (!(this instanceof e)) return new e(tagName, attrs, children)
 	if (typeof tagName !== "string" && tagName !== Comment) throw new TypeError("invalid tagName value")
@@ -50,18 +59,19 @@ export function e(tagName, attrs = {}, children = []) {
 		throw new TypeError(`unexpected key in attrs position: ${str(k)}`)}
 	})
 	if (attrs.hasAttrs) {
-		attrs.hasAttrs.forEach((a) => {
+		if (Array.isArray(attrs.hasAttrs)) attrs.hasAttrs.forEach((a) => {
 			if (a != null && typeof a === "object") {
-				for (const [k, v] of Object.entries(a)) {
-					if (typeof v !== "string") throw new TypeError(
-						`string expected as a value for ${str(k)} in ${str(a)}`
-					)
-				}
-			} else if (a == null || typeof a !== "string") {
+				validateHasAttrsObject(a)
+			} else if (typeof a !== "string") {
 				const kind = a === null ? "null" : typeof a
 				throw new TypeError(`Expected string or object for hasAttrs, got ${kind}`)
 			}
 		})
+		else if (attrs.hasAttrs != null && typeof attrs.hasAttrs === "object") {
+			validateHasAttrsObject(attrs.hasAttrs)
+		} else {
+			throw new TypeError("Object, or Array of strings and Objects expected for hasAttrs")
+		}
 	}
 	children.forEach((ch) => {
 		if (!(ch instanceof e) && typeof ch !== "string") {
@@ -119,6 +129,7 @@ function check(actual, expected, prefix, error) {
 
 function checkElement(actual, expected, prefix, error) {
 	for (const k in validators) if (expected[k] != null) validators[k](actual, expected[k], prefix, error)
+	if (expected.hasAttrs == null) validators.hasAttrs(actual, [], prefix, error)
 	const chCount = {
 		actual: actual.childNodes.length,
 		expected: expected.children == null ? 0 : expected.children.length
@@ -157,24 +168,25 @@ function equal(a, b, k, kind) {
 
 const validators = {
 	hasAttrs: (element, hasAttrs, prefix, error) => {
+		const allAttrs = Object.create(null)
 		if (!Array.isArray(hasAttrs)) hasAttrs = [hasAttrs]
 		hasAttrs.forEach((a) => {
-			if (typeof a === "string" && !element.hasAttribute(a)) {
-				error(prefix + `[${a}]`, "attribute expected, but not found")
+			if (typeof a === "string"){
+				allAttrs[a] = true
+				if (!element.hasAttribute(a)) {
+					error(prefix + `[${a}]`, "attribute expected, but not found")
+				}
 			} else if (typeof a === "object") {
 				for (const k in a) {
+					allAttrs[k] = true
 					if (!(element.hasAttribute(k) && equal(element.getAttribute(k), a[k], k, "attr"))) {
 						error(prefix + `[${k}]`, `attribute expected to be ${str(a[k])}, not ${str(element.getAttribute(k))}`)
 					}
 				}
 			}
 		})
-	},
-	lacksAttrs: (element, lackAttrs, prefix, error) => {
-		lackAttrs.forEach((a) => {
-			if (element.hasAttribute(a)) {
-				error(prefix + `[${a}]`, `unexpected attribute, with value ${str(element.getAttribute(a))}`)
-			}
+		element.getAttributeNames().forEach((a) => {
+			if (!(a in allAttrs)) error(prefix + `[${a}]`, `unexpected attribute, with value ${str(element.getAttribute(a))}`)
 		})
 	},
 	hasProps: (element, hasProps, prefix, error) => {

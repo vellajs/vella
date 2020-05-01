@@ -1,5 +1,6 @@
 import o from "ospec"
 import {V, setWindow as setVellaWindow, v} from "../../index.js"
+import {cacheDelay} from "../../src/v.js"
 import {e, matchDOM, setWindow as setMDWindow} from "../../test-util/matchDOM.js"
 import {refreshWindow, win} from "../test-setup.js"
 
@@ -10,7 +11,7 @@ o.spec("hyperscript", () => {
 		setMDWindow(win)
 	})
 	o.spec("common for v and V", () => {
-		[{v}, {V}].forEach((x) => {
+		void [{v}, {V}].forEach((x) => {
 			const [[name, v]] = Object.entries(x)
 			o.spec(name, () => {
 				o.spec("invalid first argument", () => {
@@ -48,137 +49,240 @@ o.spec("hyperscript", () => {
 					})
 				})
 				o.spec("selector", () => {
+					o("cache param sanity check", () => {
+						// if this changes, `oc` must also be rethought.
+						o(cacheDelay).equals(2)
+					})
+					function _4times(fn) {
+						// the first two times, fresh elements are created.
+						// the thrird time it is cached and cloned
+						// from then on it is just cloned
+						["first", "second", "third", "fourth"].forEach((n)=>{fn(n +" time")})
+					}
 					o("handles tagName in selector", () => {
-						const element = v("a")
-						o(element.tagName).equals("A")
+						_4times((nth) => {
+							const actual = v("a")
+							const expected = e("a")
+				
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-					o("handles class in selector", function() {
-						const element = v(".a")
-			
-						o(element.tagName).equals("DIV")
-						o(element.className).equals("a")
+					o("handles class in selector", () => {
+						_4times((nth) => {
+							const actual = v(".a")
+							const expected = e("div", {hasAttrs: {class: "a"}})
+				
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-					o("handles many classes in selector", function() {
-						const element = v(".a.b.c")
-			
-						o(element.tagName).equals("DIV")
-						o(element.className).equals("a b c")
+					o("handles many classes in selector", () => {
+						_4times((nth) => {
+							const actual = v(".a.b.c")
+							const expected = e("div", {hasAttrs: {class: "a b c"}})
+				
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-					o("handles id in selector", function() {
-						const element = v("#a")
-			
-						o(element.tagName).equals("DIV")
-						o(element.id).equals("a")
+					o("handles id in selector", () => {
+						_4times((nth) => {
+							const actual = v("#a")
+							const expected = e("div", {hasAttrs:{id: "a"}})
+				
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-					o("handles attr in selector", function() {
-						const element = v("[a=b]")
-			
-						o(element.tagName).equals("DIV")
-						o(element.getAttribute("a")).equals("b")
+					o("handles attr in selector", () => {
+						_4times((nth) => {
+							const actual = v("[a=b]")
+							const expected = e("div", {hasAttrs:{a: "b"}})
+				
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-					o("handles many attrs in selector", function() {
-						const element = v("[a=b][c=d]")
-			
-						o(element.tagName).equals("DIV")
-						o(element.getAttribute("a")).equals("b")
-						o(element.getAttribute("c")).equals("d")
+					o("handles many attrs in selector", () => {
+						_4times((nth) => {
+							const actual = v("[a=b][c=d]")
+							const expected = e("div", {hasAttrs:{a: "b", c: "d"}})
+				
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-					o("handles attr w/ spaces in selector", function() {
-						const element = v("[a = b]")
-			
-						o(element.tagName).equals("DIV")
-						o(element.getAttribute("a")).equals("b")
+					o("handles attr w/ spaces in selector", () => {
+						_4times((nth) => {
+							const actual = v("[a = b]")
+							const expected = e("div", {hasAttrs:{a: "b"}})
+				
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-					o("handles attr w/ quotes in selector", function() {
-						const element = v("[a='b']")
-			
-						o(element.tagName).equals("DIV")
-						o(element.getAttribute("a")).equals("b")
+					o("handles attr w/ quotes in selector", () => {
+						_4times((nth) => {
+							const actual = v("[a='b']")
+							const expected = e("div", {hasAttrs:{a: "b"}})
+				
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-					o("handles attr w/ quoted square bracket", function() {
-						const element = v("[x][a='[b]'].c")
-			
-						o(element.tagName).equals("DIV")
-						o(element.getAttribute("x")).equals("")
-						o(element.getAttribute("a")).equals("[b]")
-						o(element.className).equals("c")
+					o("handles attr w/ quoted square bracket", () => {
+						_4times((nth) => {
+							const actual = v("[x][a='[b]'].c")
+							const expected = e("div", {
+								hasAttrs:{
+									a: "[b]",
+									x: "", 
+									class: "c"
+								}
+							})
+				
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-					o("handles attr w/ unmatched square bracket", function() {
-						const element = v("[a=']'].c")
-			
-						o(element.tagName).equals("DIV")
-						o(element.getAttribute("a")).equals("]")
-						o(element.className).equals("c")
+					o("handles attr w/ unmatched square bracket", () => {
+						_4times((nth) => {
+							const actual = v("[a=']'].c")
+							const expected = e("div", {
+								hasAttrs:{
+									a: "]",
+									class: "c"
+								}
+							})
+				
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-					o("handles attr w/ quoted square bracket and quote", function() {
-						const element = v("[a='[b\"\\']'].c") // `[a='[b"\']']`
-			
-						o(element.tagName).equals("DIV")
-						o(element.getAttribute("a")).equals("[b\"']") // `[b"']`
-						o(element.className).equals("c")
+					o("handles attr w/ quoted square bracket and quote", () => {
+						_4times((nth) => {
+							// eslint-disable-next-line quotes
+							const actual = v(`[a='[b"\\']'].c`)
+							const expected = e("div", {
+								hasAttrs:{
+									// eslint-disable-next-line quotes
+									a: `[b"']`,
+									class: "c"
+								}
+							})
+				
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-					o("handles attr w/ quoted square containing escaped square bracket", function() {
-						const element = v("[a='[\\]]'].c") // `[a='[\]]']`
-			
-						o(element.tagName).equals("DIV")
-						o(element.getAttribute("a")).equals("[\\]]") // `[\]]`
-						o(element.className).equals("c")
+					o("handles attr w/ quoted square containing escaped square bracket", () => {
+						_4times((nth) => {
+							const actual = v("[a='[\\]]'].c") // `[a='[\]]']`
+							const expected = e("div", {
+								hasAttrs:{
+									a: "[\\]]",
+									class: "c"
+								}
+							})
+						
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-					o("handles attr w/ backslashes", function() {
-						const element = v("[a='\\\\'].c") // `[a='\\']`
-			
-						o(element.tagName).equals("DIV")
-						o(element.getAttribute("a")).equals("\\")
-						o(element.className).equals("c")
+					o("handles attr w/ backslashes", () => {
+						_4times((nth) => {
+							const actual = v("[a='\\\\'].c") // `[a='\\']`
+							const expected = e("div", {
+								hasAttrs:{
+									a: "\\",
+									class: "c"
+								}
+							})
+						
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-					o("handles attr w/ quotes and spaces in selector", function() {
-						const element = v("[a = 'b']")
-			
-						o(element.tagName).equals("DIV")
-						o(element.getAttribute("a")).equals("b")
+					o("handles attr w/ quotes and spaces in selector", () => {
+						_4times((nth) => {
+							const actual = v("[a = 'b']")
+							const expected = e("div", {
+								hasAttrs:{
+									a: "b"
+								}
+							})
+						
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-					o("handles many attr w/ quotes and spaces in selector", function() {
-						const element = v("[a = 'b'][c = 'd']")
-			
-						o(element.tagName).equals("DIV")
-						o(element.getAttribute("a")).equals("b")
-						o(element.getAttribute("c")).equals("d")
+					o("handles many attr w/ quotes and spaces in selector", () => {
+						_4times((nth) => {
+							const actual = v("[a = 'b'][c = 'd']")
+						
+							const expected = e("div", {
+								hasAttrs:{
+									a: "b",
+									c: "d"
+								}
+							})
+						
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-					o("handles tag, class, attrs in selector", function() {
-						const element = v("a.b[c = 'd']")
-			
-						o(element.tagName).equals("A")
-						o(element.className).equals("b")
-						o(element.getAttribute("c")).equals("d")
+					o("handles tag, class, attrs in selector", () => {
+						_4times((nth) => {
+							const actual = v("a.b[c = 'd']")
+							const expected = e("a", {
+								hasAttrs:{
+									class: "b",
+									c: "d"
+								}
+							})
+						
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-					o("handles tag, mixed classes, attrs in selector", function() {
-						const element = v("a.b[c = 'd'].e[f = 'g']")
-			
-						o(element.tagName).equals("A")
-						o(element.className).equals("b e")
-						o(element.getAttribute("c")).equals("d")
-						o(element.getAttribute("f")).equals("g")
+					o("handles tag, mixed classes, attrs in selector", () => {
+						_4times((nth) => {
+							const actual = v("a.b[c = 'd'].e[f = 'g']")
+							const expected = e("a", {
+								hasAttrs:{
+									class: "b e",
+									c: "d",
+									f: "g"
+								}
+							})
+						
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-					o("handles attr without value", function() {
-						const element = v("[a]")
-			
-						o(element.tagName).equals("DIV")
-						o(element.getAttribute("a")).equals("")
+					o("handles attr without value", () => {
+						_4times((nth) => {
+							const actual = v("[a]")
+							const expected = e("div", {
+								hasAttrs:{
+									a: ""
+								}
+							})
+						
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-					o("handles explicit empty string value for input", function() {
-						const element = v('input[value=""]')
-			
-						o(element.tagName).equals("INPUT")
-						o(element.value).equals("")
+					o("handles explicit empty string value for input", () => {
+						_4times((nth) => {
+							const actual = v('input[value=""]')
+							const expected = e("input", {
+								hasAttrs:{
+									value: ""
+								}
+							})
+						
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-					o("handles explicit empty string value for option", function() {
-						const element = v('option[value=""]')
-			
-						o(element.tagName).equals("OPTION")
-						o(element.value).equals("")
+					o("handles explicit empty string value for option", () => {
+						_4times((nth) => {
+							const actual = v('option[value=""]')
+							const expected = e("option", {
+								hasAttrs:{
+									value: ""
+								}
+							})
+						
+							o(actual).satisfies(matchDOM(expected))(nth)
+						})
 					})
-			
-					//  class and className normalization here
+						
+					//  class and className normalization here?
+
 			
 				})
 				o.spec("attrs", function() {
