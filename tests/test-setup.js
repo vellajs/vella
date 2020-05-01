@@ -4,7 +4,9 @@ export {win, doc, refreshWindow}
 let win
 let doc
 let refreshWindow
+
 let currentRoot
+
 o.before(() => {
 	if (typeof window !== "undefined") {
 		let current

@@ -7,7 +7,7 @@ export function setWindow(w) {
 	win = w
 	nodeProto = win.Node.prototype
 	doc = w.document
-	tagCache = {}
+	tagCache = {"": {}, "http://www.w3.org/2000/svg": {}, "http://www.w3.org/1998/Math/MathML": {}}
 }
 
 if (typeof window != "undefined") setWindow(window)
