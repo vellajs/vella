@@ -1,17 +1,16 @@
 import {componentEarmark} from "./constants.js"
-import {doc, win} from "./env.js"
+import {doc, markAsObserving, observingRoot, win} from "./env.js"
 import {postpone} from "./postpone.js"
 import {S} from "./S.js"
 import {absorb, hasOwn, skippable} from "./util.js"
-
+// public API
 export {
 	forEach, toList,
-
+	connected,
 	boot,
 	beforeRemove, onRender, onReflow,
-
 }
-
+// private exports
 export {
 	emit, emitWithNodeRange, remove,
 	globalDOM, globalRange, DOMRef,
@@ -80,6 +79,37 @@ function toList(rng) {
 	forEach(rng, el => res.push(el))
 	return res
 }
+
+// Connected
+
+const pendingConnection = new WeakMap
+
+
+function connected() {
+	if (win == null) return false
+	if (!observingRoot) {
+		markAsObserving()
+		new win.MutationObserver((mutations) => {
+			mutations.forEach(record => [].forEach.call(record.addedNodes, (node) => {
+				const signal = pendingConnection.get(node)
+				if (signal != null) {
+					signal(true)
+					// only trigger the signal once, and let future nodes detect the
+					// connected status of their parent.
+					pendingConnection.delete(node)
+				}
+			}))
+		}).observe(doc.documentElement, {childList: true, subtree: true})
+	}
+	if (globalRange == null) throw new Error("connected can only be called from a vella DOM context")
+	if (doc.documentElement.contains(globalRange.parentNode) || doc.documentElement === globalRange.parentNode) return true
+	else {
+		const stream = pendingConnection.get(globalRange.parentNode) || S.data(false)
+		pendingConnection.set(globalRange.parentNode, stream)
+		return stream()
+	}
+}
+
 
 // hooks
 
@@ -241,9 +271,6 @@ function remove(dR) {
 		})
 	}
 }
-
-// const attrsSentinel = {}
-
 
 function boot(parentNode, main) {
 	let nextSibling

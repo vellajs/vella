@@ -54,7 +54,9 @@ function validateHasAttrsObject(a) {
 
 export function e(tagName, attrs = {}, children = []) {
 	if (!(this instanceof e)) return new e(tagName, attrs, children)
-	if (typeof tagName !== "string" && tagName !== Comment) throw new TypeError("invalid tagName value")
+	if (typeof tagName !== "string" && tagName !== Comment) {
+		throw new TypeError(`invalid tagName value: ${tagName} (${typeof tagName})`)
+	}
 	Object.keys(attrs).forEach((k) => {if (!hasOwn.call(defaultAttrs, k)) {
 		throw new TypeError(`unexpected key in attrs position: ${str(k)}`)}
 	})
@@ -81,7 +83,7 @@ export function e(tagName, attrs = {}, children = []) {
 	Object.assign(this, {tagName, children}, defaultAttrs, attrs)
 }
 
-const Comment = e.comment = (txt = "") => new e(Comment, {}, [String(txt)])
+const Comment = e.comment = (txt = "") => e(Comment, {}, [String(txt)])
 
 
 export const matchDOM = expected => (actual) => {
