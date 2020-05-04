@@ -51,16 +51,16 @@ o.spec("hyperscript", () => {
 				o.spec("selector", () => {
 					o("cache param sanity check", () => {
 						// if this changes, `oc` must also be rethought.
-						o(cacheDelay).equals(2)
+						o(cacheDelay).equals(1)
 					})
-					function _4times(fn) {
+					function _3times(fn) {
 						// the first two times, fresh elements are created.
 						// the thrird time it is cached and cloned
 						// from then on it is just cloned
-						["first", "second", "third", "fourth"].forEach((n)=>{fn(n +" time")})
+						["first", "second", "third"].forEach((n) => {fn(n + " time")})
 					}
 					o("handles tagName in selector", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							const actual = v("a")
 							const expected = e("a")
 				
@@ -68,7 +68,7 @@ o.spec("hyperscript", () => {
 						})
 					})
 					o("handles class in selector", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							const actual = v(".a")
 							const expected = e("div", {hasAttrs: {class: "a"}})
 				
@@ -76,7 +76,7 @@ o.spec("hyperscript", () => {
 						})
 					})
 					o("handles many classes in selector", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							const actual = v(".a.b.c")
 							const expected = e("div", {hasAttrs: {class: "a b c"}})
 				
@@ -84,7 +84,7 @@ o.spec("hyperscript", () => {
 						})
 					})
 					o("handles id in selector", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							const actual = v("#a")
 							const expected = e("div", {hasAttrs:{id: "a"}})
 				
@@ -92,7 +92,7 @@ o.spec("hyperscript", () => {
 						})
 					})
 					o("handles attr in selector", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							const actual = v("[a=b]")
 							const expected = e("div", {hasAttrs:{a: "b"}})
 				
@@ -100,7 +100,7 @@ o.spec("hyperscript", () => {
 						})
 					})
 					o("handles many attrs in selector", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							const actual = v("[a=b][c=d]")
 							const expected = e("div", {hasAttrs:{a: "b", c: "d"}})
 				
@@ -108,7 +108,7 @@ o.spec("hyperscript", () => {
 						})
 					})
 					o("handles attr w/ spaces in selector", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							const actual = v("[a = b]")
 							const expected = e("div", {hasAttrs:{a: "b"}})
 				
@@ -116,7 +116,7 @@ o.spec("hyperscript", () => {
 						})
 					})
 					o("handles attr w/ quotes in selector", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							const actual = v("[a='b']")
 							const expected = e("div", {hasAttrs:{a: "b"}})
 				
@@ -124,12 +124,12 @@ o.spec("hyperscript", () => {
 						})
 					})
 					o("handles attr w/ quoted square bracket", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							const actual = v("[x][a='[b]'].c")
 							const expected = e("div", {
 								hasAttrs:{
 									a: "[b]",
-									x: "", 
+									x: "",
 									class: "c"
 								}
 							})
@@ -138,7 +138,7 @@ o.spec("hyperscript", () => {
 						})
 					})
 					o("handles attr w/ unmatched square bracket", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							const actual = v("[a=']'].c")
 							const expected = e("div", {
 								hasAttrs:{
@@ -151,7 +151,7 @@ o.spec("hyperscript", () => {
 						})
 					})
 					o("handles attr w/ quoted square bracket and quote", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							// eslint-disable-next-line quotes
 							const actual = v(`[a='[b"\\']'].c`)
 							const expected = e("div", {
@@ -166,7 +166,7 @@ o.spec("hyperscript", () => {
 						})
 					})
 					o("handles attr w/ quoted square containing escaped square bracket", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							const actual = v("[a='[\\]]'].c") // `[a='[\]]']`
 							const expected = e("div", {
 								hasAttrs:{
@@ -179,7 +179,7 @@ o.spec("hyperscript", () => {
 						})
 					})
 					o("handles attr w/ backslashes", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							const actual = v("[a='\\\\'].c") // `[a='\\']`
 							const expected = e("div", {
 								hasAttrs:{
@@ -192,7 +192,7 @@ o.spec("hyperscript", () => {
 						})
 					})
 					o("handles attr w/ quotes and spaces in selector", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							const actual = v("[a = 'b']")
 							const expected = e("div", {
 								hasAttrs:{
@@ -204,7 +204,7 @@ o.spec("hyperscript", () => {
 						})
 					})
 					o("handles many attr w/ quotes and spaces in selector", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							const actual = v("[a = 'b'][c = 'd']")
 						
 							const expected = e("div", {
@@ -218,7 +218,7 @@ o.spec("hyperscript", () => {
 						})
 					})
 					o("handles tag, class, attrs in selector", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							const actual = v("a.b[c = 'd']")
 							const expected = e("a", {
 								hasAttrs:{
@@ -231,7 +231,7 @@ o.spec("hyperscript", () => {
 						})
 					})
 					o("handles tag, mixed classes, attrs in selector", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							const actual = v("a.b[c = 'd'].e[f = 'g']")
 							const expected = e("a", {
 								hasAttrs:{
@@ -245,7 +245,7 @@ o.spec("hyperscript", () => {
 						})
 					})
 					o("handles attr without value", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							const actual = v("[a]")
 							const expected = e("div", {
 								hasAttrs:{
@@ -257,10 +257,10 @@ o.spec("hyperscript", () => {
 						})
 					})
 					o("handles explicit empty string value for input", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							const actual = v('input[value=""]')
 							const expected = e("input", {
-								hasAttrs:{
+								hasProps:{
 									value: ""
 								}
 							})
@@ -269,7 +269,7 @@ o.spec("hyperscript", () => {
 						})
 					})
 					o("handles explicit empty string value for option", () => {
-						_4times((nth) => {
+						_3times((nth) => {
 							const actual = v('option[value=""]')
 							const expected = e("option", {
 								hasAttrs:{

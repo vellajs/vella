@@ -1,7 +1,7 @@
 import {S} from "./S.js"
 import {absorb, hasOwn, skippable} from "./util.js"
 
-export {setAttrs}
+export {parseAndSetAttrs, setAttrs}
 
 const avoidAsProp = attr =>
 	// as attr, they can take units, not as props.
@@ -16,7 +16,6 @@ const avoidAsProp = attr =>
 	// so that we can remove it entirely rather than setting it to `undefined`
 	|| attr === "id"
 	)
-
 
 function setAttrs(el, attrs, ns, tagName) {
 	if (Array.isArray(attrs)) setAttrsArray(el, attrs, ns, tagName, true)
@@ -200,5 +199,34 @@ function setStyleCustomProperty(el, prop, v, hasOverrides) {
 		dynStyleProps[prop] = node
 	} else {
 		el.style.setProperty(prop, skippable(v) ? "" : v)
+	}
+}
+
+const attrsParser = /([.#])([^.#\[]+)|\[(.+?)(?:\s*=\s*("|'|)((?:\\["'\]]|.)*?)\4)?\]|((?!$))/g
+function parseAndSetAttrs(element, s, ns) {
+	attrsParser.lastIndex = 0
+	let match
+	let j = 0
+	let classes
+	while(match = attrsParser.exec(s)) {
+		if (j++ === 1000) {console.error("attrs parser bug for " + s);break}
+		if (match[6]!= null) throw new RangeError(`unexpected attr: ${s.slice(match.index)}`)
+		if (match[1] != null) {
+			if (match[1] === ".") (classes || (classes=[])).push(match[2])
+			else {
+				if (ns === "") element.id = match[2]
+				else element.setAttribute("id", match[2])
+			}
+		} else if (match[3] != null) {
+			const key = match[3]
+			const value = match[5] ? match[5].replace(/\\(["'])/g, "$1").replace(/\\\\/g, "\\") : ""
+			if (key === "class") (classes || (classes=[])).push(value)
+			else if (avoidAsProp(key) || !(key in element)) element.setAttribute(key, value)
+			else element[key] = value
+		}
+	}
+	if (classes != null) {
+		if (ns != null) element.className = classes.join(" ")
+		else element.setAttribute("class", classes.join(" "))
 	}
 }
