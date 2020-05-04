@@ -2,7 +2,7 @@ export {setWindow} from "./src/env.js"
 export {List, list} from "./src/lists.js"
 export {
 	forEach, toList,
-
+	connected,
 	boot,
 	beforeRemove, onRender, onReflow,
 
