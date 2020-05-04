@@ -1,6 +1,6 @@
-import {setAttrs} from "./attrs.js"
+import {parseAndSetAttrs, setAttrs} from "./attrs.js"
 import {componentEarmark} from "./constants.js"
-import {doc, isChrome, nodeProto, tagCache} from "./env.js"
+import {doc, tagCache} from "./env.js"
 import {DOMRef, emit, withRef, withoutRange} from "./render.js"
 import {getProto, objProto, skippable} from "./util.js"
 
@@ -8,36 +8,7 @@ export {MATH, SVG, V}
 export {math, svg, v}
 export {cacheDelay, setCacheDelay}
 
-const attrsParser = /([.#])([^.#\[]+)|\[(.+?)(?:\s*=\s*("|'|)((?:\\["'\]]|.)*?)\4)?\]|((?!$))/g
 let globalNS = ""
-
-function parseAndSetAttrs(element, s, ns) {
-	attrsParser.lastIndex = 0
-	let match
-	const attrs = Object.create(null)
-	let j = 0
-	let classes
-	while(match = attrsParser.exec(s)) {
-		if (j++ === 1000) {console.error("attrs parser bug");break}
-		if (match[6]!= null) throw new RangeError(`unexpected attr: ${s.slice(match.index)}`)
-		if (match[1] != null) {
-			if (match[1] === ".") (classes || (classes=[])).push(match[2])
-			else {
-				element.setAttribute("id", attrs.id=match[2])
-			}
-		} else if (match[3] != null) {
-			const key = match[3]
-			const value = match[5] ? match[5].replace(/\\(["'])/g, "$1").replace(/\\\\/g, "\\") : ""
-			if (key === "class") (classes || (classes=[])).push(value)
-			else element.setAttribute(key, attrs[key]=value)
-		}
-	}
-	if (classes != null) {
-		classes = attrs.class = classes.join(" ")
-		if (ns != null) element.className = classes
-		else element.setAttribute("class", classes)
-	}
-}
 
 function makeElement(selector, ns) {
 	const end = selector.match(/[ \.#\[]|$/).index
@@ -49,7 +20,7 @@ function makeElement(selector, ns) {
 }
 
 // create the element from scratch twice before caching/cloning.
-let cacheDelay = 2
+let cacheDelay = 1
 function setCacheDelay(n) {
 	cacheDelay = n
 }
