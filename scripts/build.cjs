@@ -1,5 +1,6 @@
 const {rollup} = require("rollup")
 const resolve = require("@rollup/plugin-node-resolve")
+const alias = require("@rollup/plugin-node-alias")
 const {terser} = require("rollup-plugin-terser")
 const path = require("path")
 const fs = require("fs-extra")
@@ -11,17 +12,18 @@ const dist = path.dirname(minified)
 
 const clear = fs.remove(dist)
 
-const bundle =
+const bundle = (...plugins) =>
 	clear
 		.then(() => rollup({
 			input,
 			plugins: [
-				resolve()
+				resolve(),
+				...plugins
 			]
 		}))
 
 const normalOutput =
-	bundle
+	bundle()
 		.then(x => x.generate({
 			format: "umd",
 			name: "vella"
@@ -34,7 +36,9 @@ const normalOutput =
 
 
 const minifiedOutput =
-	bundle
+	bundle([
+		alias({find: "./src/errors.js", replacement: "./src/errorsProduction.js"})
+	])
 		.then(x => x.generate({
 			plugins: [
 				terser()

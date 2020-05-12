@@ -1,20 +1,20 @@
 import {componentEarmark} from "./constants.js"
-import {doc, markAsObserving, observingRoot, win} from "./env.js"
-import {postpone} from "./postpone.js"
+import {doc, win} from "./env.js"
+import {postpone} from "./hooks.js"
 import {S} from "./S.js"
 import {absorb, hasOwn, skippable} from "./util.js"
 // public API
 export {
-	forEach, toList,
-	connected,
+	forEachNode, toList,
 	boot,
-	beforeRemove, onRender, onReflow,
+	beforeRemove,
+	onRender, onReflow,
 }
 // private exports
 export {
 	emit, emitWithNodeRange, remove,
-	globalDOM, globalRange, DOMRef,
-	withRange, withRef,
+	globalDOM, globalRange, globalZone, DOMRef, NodeRange,
+	setRange, withRangeForInsertion, withRef,
 
 	withoutRange
 }
@@ -26,6 +26,7 @@ export {
 // ironed out of the core and I'm confident with
 // the tests, they'll be inlined
 
+let globalZone
 let globalDOM
 let globalRange
 let globalFirstInserted
@@ -35,81 +36,66 @@ function withoutRange(fn) {
 	const previous = globalRange
 	const previousFirstInserted = globalFirstInserted
 	globalRange = globalFirstInserted = null
-	fn()
-	globalRange = previous
-	globalFirstInserted = previousFirstInserted
+	try {
+		fn()
+	} finally {
+		globalRange = previous
+		globalFirstInserted = previousFirstInserted
+	
+	}
 }
 
-function withRange(dr, fn) {
+function withRangeForInsertion(dr, fn) {
 	const previous = globalRange
 	const firstInserted = globalFirstInserted
 	globalRange = dr
 	globalFirstInserted = null
-	fn()
-	dr.firstNode = globalFirstInserted
-	dr.lastNode = globalLastInserted
-	if (firstInserted != null) globalFirstInserted = firstInserted
-	globalRange = previous
+	try {
+		fn()
+	} finally {
+		dr.firstNode = globalFirstInserted
+		dr.lastNode = globalLastInserted
+		if (firstInserted != null) globalFirstInserted = firstInserted
+		globalRange = previous
+	}
+}
+
+function setRange(nr) {
+	globalRange = nr
 }
 
 function withRef(dom, fn) {
 	const previous = globalDOM
 	globalDOM = dom
-	const res = fn()
-	globalDOM = previous
-	return res
+	try {
+		return fn()
+	} finally {
+		globalDOM = previous
+	}
 }
 
 // helpers
 
-function forEach(dR, fn) {
-	const {firstNode, lastNode} = dR
-	const boundary = lastNode.nextSibling
-	let node = firstNode
-	let i = 0
-	do {
-		const next = node.nextSibling
-		fn(node, i++)
-		node = next
-	} while (node !== boundary)
+function forEachNode(dR, fn) {
+	S.freeze(() => {
+		const {firstNode, lastNode} = dR
+		const boundary = lastNode.nextSibling
+		let node = firstNode
+		let i = 0
+		do {
+			const next = node.nextSibling
+			if (node.nodeType !== 8) try {fn(node, i++)} finally {/**/}
+			node = next
+		} while (node !== boundary)
+	
+	})
 }
 
 function toList(rng) {
 	const res = []
-	forEach(rng, el => res.push(el))
+	forEachNode(rng, el => res.push(el))
 	return res
 }
-
-// Connected
-
-const pendingConnection = new WeakMap
-
-
-function connected() {
-	if (win == null) return false
-	if (!observingRoot) {
-		markAsObserving()
-		new win.MutationObserver((mutations) => {
-			mutations.forEach(record => [].forEach.call(record.addedNodes, (node) => {
-				const signal = pendingConnection.get(node)
-				if (signal != null) {
-					signal(true)
-					// only trigger the signal once, and let future nodes detect the
-					// connected status of their parent.
-					pendingConnection.delete(node)
-				}
-			}))
-		}).observe(doc.documentElement, {childList: true, subtree: true})
-	}
-	if (globalRange == null) throw new Error("connected can only be called from a vella DOM context")
-	if (doc.documentElement.contains(globalRange.parentNode) || doc.documentElement === globalRange.parentNode) return true
-	else {
-		const stream = pendingConnection.get(globalRange.parentNode) || S.data(false)
-		pendingConnection.set(globalRange.parentNode, stream)
-		return stream()
-	}
-}
-
 
 // hooks
 
@@ -190,7 +176,7 @@ function emitDynamic(fn) {
 		const nextSibling = oldNodeRange != null ? oldNodeRange.lastNode.nextSibling : globalDOM.nextSibling
 		const {parentNode} = rng
 		// if (parentNode.tagName === "UL") console.log("PN1:", parentNode.outerHTML)
-		withRange(rng, () => {
+		withRangeForInsertion(rng, () => {
 			withRef(DOMRef(parentNode, nextSibling), () => {
 				emit(absorb(fn))
 				// if (parentNode.tagName === "UL") console.log("PN2:", parentNode.outerHTML)
@@ -235,7 +221,7 @@ function emitDynamic(fn) {
 
 function emitWithNodeRange (node) {
 	const dr = NodeRange(globalRange)
-	withRange(dr, () => {emit(node)})
+	withRangeForInsertion(dr, () => {emit(node)})
 	return dr
 }
 
@@ -266,7 +252,7 @@ function remove(dR) {
 	if (dR.asArray != null) {
 		dR.asArray.forEach((node) => {if (node.parentNode != null) parentNode.removeChild(node)})
 	} else {
-		forEach(dR, (node) => {
+		forEachNode(dR, (node) => {
 			if (node.parentNode != null) parentNode.removeChild(node)
 		})
 	}

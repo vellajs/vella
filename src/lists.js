@@ -1,7 +1,7 @@
 // /* global p */
 // import S from "s-js"
 import {doc} from "./env.js"
-import {DOMRef, emitWithNodeRange, globalDOM, globalRange, onRender, remove, toList, withRange, withRef} from "./render.js"
+import {DOMRef, emitWithNodeRange, globalDOM, globalRange, onRender, remove, toList, withRangeForInsertion, withRef} from "./render.js"
 // TODO use V
 import {S} from "./S.js"
 import {v} from "./v.js"
@@ -134,7 +134,7 @@ export function update(
 					S.root((dispose) => { refs[i] = {dispose, range: emitWithNodeRange(render(key, index)), index} })
 				})
 			} else {
-				withRange(parentDOMRange, () => {
+				withRangeForInsertion(parentDOMRange, () => {
 					withRef(DOMRef(parentNode, nextSibling), () => {
 						keys.forEach((key, i) => {
 							const index = hasIndices ? S.value(i) : null
@@ -195,7 +195,7 @@ export function update(
 		if (ks > ke) for (let i = os; i <= oe; i++) remove(oldRefs[i])
 		else if (os > oe) {
 			// p("adding", parentNode, nextSibling)
-			withRange(parentDOMRange, () => {
+			withRangeForInsertion(parentDOMRange, () => {
 				withRef(DOMRef(parentNode, nextSibling), () => {
 					for (let i = ks; i <= ke; i++) S.root((dispose) => { refs[i] = {dispose, range: emitWithNodeRange(render(keys[i]))} })
 				})
@@ -223,7 +223,7 @@ export function update(
 				// p("remove", {old})
 				for (let i = os; i <= oe; i++) if (old[i] != null) remove(oldRefs[i])
 			}
-			withRange(parentDOMRange, () => {
+			withRangeForInsertion(parentDOMRange, () => {
 				withRef(DOMRef(parentNode, nextSibling), () => {
 					if (matched === 0) {
 						// p("just adding")

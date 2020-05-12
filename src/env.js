@@ -2,14 +2,10 @@ export let doc
 export let win
 export let nodeProto
 export let tagCache
-export let observingRoot = false
-
-export function markAsObserving() {observingRoot = true}
 
 export function setWindow(w) {
 	doc = w.document
 	nodeProto = w.Node.prototype
-	observingRoot = false
 	tagCache = {"": {}, "http://www.w3.org/2000/svg": {}, "http://www.w3.org/1998/Math/MathML": {}}
 	win = w
 }

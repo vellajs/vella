@@ -1,8 +1,7 @@
 export {setWindow} from "./src/env.js"
 export {List, list} from "./src/lists.js"
 export {
-	forEach, toList,
-	connected,
+	forEachNode, toList,
 	boot,
 	beforeRemove, onRender, onReflow,
 
