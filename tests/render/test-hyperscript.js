@@ -1,14 +1,16 @@
 import o from "ospec"
-import {V, setWindow as setVellaWindow, v} from "../../index.js"
+import {S, V, setWindow as setVellaWindow, v} from "../../index.js"
 import {cacheDelay} from "../../src/v.js"
 import {e, matchDOM, setWindow as setMDWindow} from "../../test-util/matchDOM.js"
 import {refreshWindow, win} from "../test-setup.js"
 
 o.spec("hyperscript", () => {
+	let createEl
 	o.beforeEach(() => {
 		refreshWindow()
 		setVellaWindow(win)
 		setMDWindow(win)
+		createEl = win.document.createElement.bind(win.document)
 	})
 	o.spec("common for v and V", () => {
 		void [{v}, {V}].forEach((x) => {
@@ -726,46 +728,139 @@ o.spec("hyperscript", () => {
 							o(cmp.args[1]).deepEquals([5])
 						}
 					})
+					o.spec("components", function() {
+						o("accepts functions but doesn't call them", () => {
+							const spy = o.spy()
+							v(spy)
+	
+							o(spy.callCount).equals(0)
+						})
+						o("works when it returns nothing; default params", () => {
+							const spy = o.spy(() => {})
+							const actual = v("div", {}, ["a", v(spy), "z"])
+							const expected = e("div", {}, ["a", "z"])
+	
+							o(spy.callCount).equals(1)
+							o(spy.args[0]).deepEquals({})
+
+							if (v === V) o(spy.args[1]).equals(undefined)
+							else o(spy.args[1]).deepEquals([undefined])
+							
+							o(actual).satisfies(matchDOM(expected))
+						})
+						o("emits its return value (text node) in the right position", () => {
+							const spy = o.spy(() => "b")
+							const actual = v("div", {}, ["a", v(spy), "z"])
+							const expected = e("div", {}, ["a", "b", "z"])
+	
+							o(spy.callCount).equals(1)
+							o(actual).satisfies(matchDOM(expected))
+						})
+						o("emits its return value (fragment of one text node) in the right position", () => {
+							const spy = o.spy(() => ["b"])
+							const actual = v("div", {}, ["a", v(spy), "z"])
+							const expected = e("div", {}, ["a", "b", "z"])
+	
+							o(spy.callCount).equals(1)
+							o(actual).satisfies(matchDOM(expected))
+						})
+						o("emits its return value (fragment of two text nodes) in the right position", () => {
+							const spy = o.spy(() => ["b", "c"])
+							const actual = v("div", {}, ["a", v(spy), "z"])
+							const expected = e("div", {}, ["a", "b", "c", "z"])
+	
+							o(spy.callCount).equals(1)
+							o(actual).satisfies(matchDOM(expected))
+						})
+						o("two components in a row emit their return values adequately", () => {
+							const spyb = o.spy(() => "b")
+							const spyB = o.spy(() => ["b"])
+							const spyBC = o.spy(() => ["b", "c"])
+							const spyCD = o.spy(() => ["c", "d"])
+							const spyD = o.spy(() => ["d"])
+							const spyd = o.spy(() => "d")
+
+							const actual1 = v("div", {}, ["a", v(spyb), v(spyCD), "z"])
+							const actual2 = v("div", {}, ["a", v(spyB), v(spyCD), "z"])
+							const actual3 = v("div", {}, ["a", v(spyBC), v(spyD), "z"])
+							const actual4 = v("div", {}, ["a", v(spyBC), v(spyd), "z"])
+
+							const expected = e("div", {}, ["a", "b", "c", "d", "z"])
+	
+							o(spyb.callCount).equals(1)
+							o(spyB.callCount).equals(1)
+							o(spyBC.callCount).equals(2)
+							o(spyCD.callCount).equals(2)
+							o(spyD.callCount).equals(1)
+							o(spyd.callCount).equals(1)
+					
+							o(actual1).satisfies(matchDOM(expected))("b, [c, d]")
+							o(actual2).satisfies(matchDOM(expected))("[b], [c, d]")
+							o(actual3).satisfies(matchDOM(expected))("[b, c], [d]")
+							o(actual4).satisfies(matchDOM(expected))("[b, c], d")
+						})
+						o("attrs are passed", () => {
+							const attrs = {}
+							const spy = o.spy()
+							v("div", {}, v(spy, attrs))
+
+							o(spy.callCount).equals(1)
+							o(spy.args[0]).equals(attrs)
+						})
+						o("element child is passed", () => {
+							const attrs = {}
+							const child = createEl("div")
+							const spy = o.spy()
+							v("div", {}, v(spy, attrs, child))
+
+							o(spy.callCount).equals(1)
+							o(spy.args[0]).equals(attrs)
+							if (v === V) o(spy.args[1]).equals(child)
+							else {
+								o(Array.isArray(spy.args[1])).equals(true)("got " + typeof spy.args[1])
+								o(spy.args[1].length).equals(1)
+								o(spy.args[1][0]).equals(child)
+							}
+						})
+						o("text child is passed", () => {
+							const attrs = {}
+							const child = "text"
+							const spy = o.spy()
+							v("div", {}, v(spy, attrs, child))
+
+							o(spy.callCount).equals(1)
+							o(spy.args[0]).equals(attrs)
+							if (v === V) o(spy.args[1]).equals(child)
+							else {
+								o(Array.isArray(spy.args[1])).equals(true)("got " + typeof spy.args[1])
+								o(spy.args[1].length).equals(1)
+								o(spy.args[1][0]).equals(child)
+							}
+						})
+						o("several element children", () => {
+							const attrs = {}
+							const child1 = createEl("div")
+							const child2 = createEl("div")
+							const spy = o.spy()
+							const cmp = v === V ? v(spy, attrs, [child1, child2]) : v(spy, attrs, child1, child2)
+							v("div", {}, cmp)
+							o(spy.callCount).equals(1)
+							o(spy.args[0]).equals(attrs)
+							o(spy.args[1]).deepEquals([child1, child2])
+						})
+						o("several text children", () => {
+							const attrs = {}
+							const child1 = "text1"
+							const child2 = "text2"
+							const spy = o.spy()
+							const cmp = v === V ? v(spy, attrs, [child1, child2]) : v(spy, attrs, child1, child2)
+							v("div", {}, cmp)
+							o(spy.callCount).equals(1)
+							o(spy.args[0]).equals(attrs)
+							o(spy.args[1]).deepEquals([child1, child2])
+						})
+					})
 				})
-				//o.spec("components", function() {
-				//	o("works with POJOs", function() {
-				//		const component = {
-				//			view: function() {}
-				//		}
-				//		const element = v(component, {id: "a"}, "b")
-				//
-				//		o(element.tag).equals(component)
-				//		o(element.attrs.id).equals("a")
-				//		o(element.children.length).equals(1)
-				//		o(element.children[0]).equals("b")
-				//	})
-				//	o("works with constructibles", function() {
-				//		const component = o.spy()
-				//		component.prototype.view = function() {}
-				//
-				//		const element = v(component, {id: "a"}, "b")
-				//
-				//		o(component.callCount).equals(0)
-				//
-				//		o(element.tag).equals(component)
-				//		o(element.attrs.id).equals("a")
-				//		o(element.children.length).equals(1)
-				//		o(element.children[0]).equals("b")
-				//	})
-				//	o("works with closures", function () {
-				//		const component = o.spy()
-				//
-				//		const element = v(component, {id: "a"}, "b")
-				//
-				//		o(component.callCount).equals(0)
-				//
-				//		o(element.tag).equals(component)
-				//		o(element.attrs.id).equals("a")
-				//		o(element.children.length).equals(1)
-				//		o(element.children[0]).equals("b")
-				//	})
-				//})
-			
 			})
 		})
 	})
@@ -824,6 +919,117 @@ o.spec("hyperscript", () => {
 		
 			o(element.children[0].tagName).equals("I")
 			o(element.children[1].tagName).equals("S")
+		})
+
+		o("handles null attr and text children unwrapped", function() {
+			const actual = v("div", null, "a", "b")
+			const expected = e("div", {}, ["a", "b"])
+
+			o(actual).satisfies(matchDOM(expected))
+		})
+		o("handles attr and text children unwrapped", function() {
+			const actual = v("div", {a: "b"}, "c", "d")
+			const expected = e("div", {hasAttrs:{a: "b"}}, ["c", "d"])
+
+			o(actual).satisfies(matchDOM(expected))
+		})
+		o("handles text children in array without attr", function() {
+			const actual = v("div", ["a", "b"])
+			const expected = e("div", {}, ["a", "b"])
+
+			o(actual).satisfies(matchDOM(expected))
+		})
+		o("handles text child without attr unwrapped", function() {
+			const actual = v("div", "a")
+			const expected = e("div", {}, ["a"])
+
+			o(actual).satisfies(matchDOM(expected))
+		})
+		o("handles  text children without attr unwrapped", function() {
+			const actual = v("div", "a", "b")
+			const expected = e("div", {}, ["a", "b"])
+
+			o(actual).satisfies(matchDOM(expected))
+		})
+		o("handles fragments of text without attr unwrapped", function() {
+			const actual = v("div", ["a"], ["b"])
+			const expected = e("div", {}, ["a", "b"])
+
+			o(actual).satisfies(matchDOM(expected))
+		})
+
+		o("handles null attr and component children unwrapped", function() {
+			const actual = v("div", null, v(() => "a"), v(() => "b"))
+			const expected = e("div", {}, ["a", "b"])
+
+			o(actual).satisfies(matchDOM(expected))
+		})
+		o("handles attr and component children unwrapped", function() {
+			const actual = v("div", {a: "b"}, v(() => "c"), v(() => "d"))
+			const expected = e("div", {hasAttrs:{a: "b"}}, ["c", "d"])
+
+			o(actual).satisfies(matchDOM(expected))
+		})
+		o("handles component children in array without attr", function() {
+			const actual = v("div", [v(() => "a"), v(() => "b")])
+			const expected = e("div", {}, ["a", "b"])
+
+			o(actual).satisfies(matchDOM(expected))
+		})
+		o("handles component child without attr unwrapped", function() {
+			const actual = v("div", v(() => "a"))
+			const expected = e("div", {}, ["a"])
+
+			o(actual).satisfies(matchDOM(expected))
+		})
+		o("handles  component children without attr unwrapped", function() {
+			const actual = v("div", v(() => "a"), v(() => "b"))
+			const expected = e("div", {}, ["a", "b"])
+
+			o(actual).satisfies(matchDOM(expected))
+		})
+		o("handles fragments of components without attr unwrapped", function() {
+			const actual = v("div", [v(() => "a")], [v(() => "b")])
+			const expected = e("div", {}, ["a", "b"])
+
+			o(actual).satisfies(matchDOM(expected))
+		})
+
+		o("handles null attr and live zone children unwrapped", function() {
+			const actual = S.root(() => v("div", null, () => "a", () => "b"))
+			const expected = e("div", {}, ["a", "b"])
+		
+			o(actual).satisfies(matchDOM(expected))
+		})
+		o("handles attr and live zone children unwrapped", function() {
+			const actual = S.root(() => v("div", {a: "b"}, () => "c", () => "d"))
+			const expected = e("div", {hasAttrs:{a: "b"}}, ["c", "d"])
+		
+			o(actual).satisfies(matchDOM(expected))
+		})
+		o("handles live zone children in array without attr", function() {
+			const actual = S.root(() => v("div", [() => "a", () => "b"]))
+			const expected = e("div", {}, ["a", "b"])
+		
+			o(actual).satisfies(matchDOM(expected))
+		})
+		o("handles live zone child without attr unwrapped", function() {
+			const actual = S.root(() => v("div", () => "a"))
+			const expected = e("div", {}, ["a"])
+		
+			o(actual).satisfies(matchDOM(expected))
+		})
+		o("handles  live zone children without attr unwrapped", function() {
+			const actual = S.root(() => v("div", () => "a", () => "b"))
+			const expected = e("div", {}, ["a", "b"])
+		
+			o(actual).satisfies(matchDOM(expected))
+		})
+		o("handles fragments of live zones without attr unwrapped", function() {
+			const actual = S.root(() => v("div", [() => "a"], [() => "b"]))
+			const expected = e("div", {}, ["a", "b"])
+		
+			o(actual).satisfies(matchDOM(expected))
 		})
 	})
 })
