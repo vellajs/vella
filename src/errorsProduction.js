@@ -1,3 +1,3 @@
 export function getErrorMessage(id) {
-	return id
+	return "see https://vellajs.org/errors.html#"+id
 }
