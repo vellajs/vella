@@ -864,7 +864,7 @@ o.spec("hyperscript", () => {
 			})
 		})
 	})
-	o.spec("v only", () => {
+	o.spec("v only, attrs vs children detection", () => {
 		o("handles null attr and childNodes unwrapped", function() {
 			const element = v("div", null, v("a"), v("b"))
 			const children = element.childNodes || []

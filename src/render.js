@@ -1,4 +1,5 @@
 import {componentEarmark} from "./constants.js"
+import {getErrorMessage} from "./errors.js"
 import {doc, win} from "./env.js"
 import {postpone} from "./hooks.js"
 import {S} from "./S.js"
@@ -76,7 +77,7 @@ function withRef(dom, fn) {
 
 // helpers
 
-function forEachNode(dR, fn) {
+function forEachNode(dR, fn, includingComments = false) {
 	S.freeze(() => {
 		const {firstNode, lastNode} = dR
 		const boundary = lastNode.nextSibling
@@ -84,7 +85,7 @@ function forEachNode(dR, fn) {
 		let i = 0
 		do {
 			const next = node.nextSibling
-			if (node.nodeType !== 8) try {fn(node, i++)} finally {/**/}
+			if (includingComments || node.nodeType !== 8) try {fn(node, i++)} finally {/**/}
 			node = next
 		} while (node !== boundary)
 	
@@ -138,7 +139,18 @@ function NodeRange({parentNode, parentNodeRange, firstNode, lastNode, removed} =
 	if (removed) console.error("rendering a node that's been removed")
 	// if (hooks != null && hooks.cache != null) hooks = Hooks(hooks.cache)
 	if (parentNode == null) parentNode = globalDOM.parent
-	return {parentNode, parentNodeRange, firstNode, lastNode, removed: false, asArray: null}
+	const res = {parentNode, parentNodeRange, firstNode, lastNode, removed: false, asArray: null}
+	// Object.defineProperties(res, {
+	// 	firstNode: {
+	// 		set(x){this._fN = x; console.log("SET fN", x); console.trace()},
+	// 		get() {return this._fN}
+	// 	},
+	// 	lastNode: {
+	// 		set(x){this._lN = x; console.log("SET lN", x); console.trace()},
+	// 		get() {return this._lN}
+	// 	},
+	// })
+	return res
 }
 
 function fromOld({parentNode, parentNodeRange, removed}) {
@@ -175,20 +187,22 @@ function emitDynamic(fn) {
 		const rng = oldNodeRange == null ? fromParent(globalRange) : fromOld(oldNodeRange)
 		const nextSibling = oldNodeRange != null ? oldNodeRange.lastNode.nextSibling : globalDOM.nextSibling
 		const {parentNode} = rng
-		// if (parentNode.tagName === "UL") console.log("PN1:", parentNode.outerHTML)
 		withRangeForInsertion(rng, () => {
 			withRef(DOMRef(parentNode, nextSibling), () => {
 				emit(absorb(fn))
-				// if (parentNode.tagName === "UL") console.log("PN2:", parentNode.outerHTML)
-				removed = (globalFirstInserted == null)
-				if (remover != null) remover(removed)
+				const wasRemoved = removed
+				removed = globalFirstInserted == null
+
+				// console.log({removed, wasRemoved, placeHolderComment})
+				// insert even if it was already present to keep the nodeRanges in sync
 				if (removed) {
 					if (placeHolderComment == null) placeHolderComment = doc.createComment("")
 					insert(placeHolderComment)
 				}
+
+				if (remover != null && !(removed && wasRemoved)) remover()
 			})
 		})
-		// if (!removed && rng.firstNode.tagName === "LI") p("LI:", rng, rng.firstNode.parentNode)
 
 		// printRanges(rng)
 		rendering = false
@@ -198,11 +212,9 @@ function emitDynamic(fn) {
 		}
 		oldNodeRange = rng
 		S.cleanup(() => {
-			const wasRemoved = removed
-			remover = () => { //(removed) => {
-				// don't remove twice in a row, the placeholder is cached and reused.
-				if (wasRemoved) return
+			remover = () => {
 				const {beforeRemove: hook} = getOrMakeHooks(oldNodeRange)
+				// console.log({hook})
 				if (hook != null) {
 					oldNodeRange.asArray = toList(oldNodeRange)
 					hook(oldNodeRange.asArray, {remove: remove.bind(null, oldNodeRange)})
@@ -236,7 +248,7 @@ function insert(node) {
 	if (globalDOM.nextSibling != null) globalDOM.parent.insertBefore(node, globalDOM.nextSibling)
 	else globalDOM.parent.appendChild(node)
 	if (globalRange != null) {
-		if (globalFirstInserted === null) globalFirstInserted = node
+		if (globalFirstInserted == null) globalFirstInserted = node
 		globalLastInserted = node
 	}
 }
@@ -253,17 +265,25 @@ function remove(dR) {
 		dR.asArray.forEach((node) => {if (node.parentNode != null) parentNode.removeChild(node)})
 	} else {
 		forEachNode(dR, (node) => {
+			// console.log({node})
 			if (node.parentNode != null) parentNode.removeChild(node)
-		})
+		}, true)
 	}
 }
 
 function boot(parentNode, main) {
+	if (parentNode == null) throw new TypeError(getErrorMessage("A002"))
 	let nextSibling
-	if (Object.getPrototypeOf(parentNode) === Object.prototype) {
+	if (Object.getPrototypeOf(parentNode) === Object.prototype && parentNode.nextSibling != null) {
 		nextSibling = parentNode.nextSibling
 		parentNode = nextSibling.parentNode
 	}
+	if (
+		String(parentNode.nodeType)[0] !== "1"
+		|| nextSibling != null && typeof nextSibling.nodeType !== "number"
+	) throw TypeError(getErrorMessage("A002"))
+	if (typeof main !== "function" || main[componentEarmark]) throw new TypeError(getErrorMessage("A003"))
+
 	return S.root((dispose) => {
 		const range = withRef(DOMRef(parentNode, nextSibling), () => emitWithNodeRange(main))
 		return () => {

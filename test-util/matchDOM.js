@@ -30,7 +30,7 @@ export function str(x) {
 	} else if (x === undefined) {
 		return "undefined"
 	} else if (typeof x === "function") {
-		return x.toStirng()
+		return x.toString()
 	} else {
 		return JSON.stringify(x)
 	}
