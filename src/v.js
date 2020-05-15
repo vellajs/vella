@@ -1,14 +1,15 @@
 import {parseAndSetAttrs, setAttrs} from "./attrs.js"
 import {componentEarmark} from "./constants.js"
+import {DOMRef, withRef, withoutRange} from "./dom-utils.js"
 import {doc, tagCache} from "./env.js"
-import {DOMRef, emit, withRef, withoutRange} from "./render.js"
+import {emit} from "./render.js"
 import {getProto, objProto, skippable} from "./util.js"
 
 export {MATH, SVG, V}
 export {math, svg, v}
 export {cacheDelay, setCacheDelay}
 
-let globalNS = ""
+let NS = ""
 
 function makeElement(selector, ns) {
 	const end = selector.match(/[ \.#\[]|$/).index
@@ -34,20 +35,20 @@ function getOrMakeElement(selector, ns) {
 const isPOJO = x => !skippable(x) && getProto(x) === objProto
 
 function svg(...args) {
-	globalNS = "http://www.w3.org/2000/svg"
+	NS = "http://www.w3.org/2000/svg"
 	try {
 		return v(...args)
 	} finally {
-		globalNS = null
+		NS = null
 	}
 }
 
 function math(...args) {
-	globalNS = "http://www.w3.org/1998/Math/MathML"
+	NS = "http://www.w3.org/1998/Math/MathML"
 	try {
 		return v(...args)
 	} finally {
-		globalNS = null
+		NS = null
 	}
 }
 
@@ -81,20 +82,20 @@ function v(tagName, attrs, ...children) {
 }
 
 function SVG(...args) {
-	globalNS = "http://www.w3.org/2000/svg"
+	NS = "http://www.w3.org/2000/svg"
 	try {
 		return V(...args)
 	} finally {
-		globalNS = null
+		NS = null
 	}
 }
 
 function MATH(...args) {
-	globalNS = "http://www.w3.org/1998/Math/MathML"
+	NS = "http://www.w3.org/1998/Math/MathML"
 	try {
 		return V(...args)
 	} finally {
-		globalNS = null
+		NS = null
 	}
 }
 
@@ -114,8 +115,8 @@ function component(tagName, attrs, children) {
 }
 
 function element(tagName, attrs, children) {
-	const el = getOrMakeElement(tagName, globalNS)
-	if (attrs != null) setAttrs(el, attrs, globalNS, tagName)
+	const el = getOrMakeElement(tagName, NS)
+	if (attrs != null) setAttrs(el, attrs, NS, tagName)
 	withRef(DOMRef(el, null), () => {
 		withoutRange(() => {
 			emit(children)

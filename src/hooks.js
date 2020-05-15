@@ -1,10 +1,11 @@
 import {componentEarmark} from "./constants.js"
+import {Range, Zone, forEachNode, fromParent, setRange, setZone, withRange} from "./dom-util.js"
 import {getErrorMessage} from "./errors.js"
 import {doc} from "./env.js"
-import {NodeRange, emit, forEachNode, globalRange, globalZone, setRange, withRangeForInsertion/*, zoneRemoveMap*/} from "./render.js"
+import {emit} from "./render.js"
 import {S} from "./S.js"
 
-export {ref, postpone}
+export {ref, postpone, setRemoveManager}
 
 /*
 - cleanup, can be called from both computations and hooks, except from removing
@@ -21,34 +22,48 @@ function asap(cb) {
 
 function rendered(cb) {
 	if (canCallHooks < 3) throw new Error(getErrorMessage("A001"))
-	postpone("rendered", cb, globalRange)
+	postpone("rendered", cb, Range)
 }
 
 function reflowed(cb) {
 	if (canCallHooks < 2) throw new Error(getErrorMessage("A001"))
-	postpone("reflowed", cb, globalRange)
+	postpone("reflowed", cb, Range)
 }
 
-function removing(cb) {
 
+const zoneRemoveMap = new WeakMap()
+
+const removeHooks = () => ({manager: null, hooks: []})
+
+function removing(cb) {
+	if (Zone.removeHooks == null) Zone.removeHooks = removeHooks()
+	Zone.removeHooks.hooks.push(cb, Zone)
+}
+
+function setRemoveManager(cb) {
+	// TODO? type check?
+	if (Zone.removeHooks == null) Zone.removeHooks = removeHooks()
+	if (Zone.removeHooks.manager != null) throw new Error(getErrorMessage("A004"))
+	Zone.removeHooks.manager = cb
 }
 
 function Ref(executor) {
-	const dr = NodeRange(globalRange)
+	const nr = fromParent(Range)
+	zoneRemoveMap.set(nr, Zone)
 	asapQueue = []
-	withRangeForInsertion(dr, () => {
+	withRange(nr, () => {
 		canCallHooks = 4
 		const res = executor({asap, rendered, reflowed, removing})
 		canCallHooks = 0
 		emit(res)
 		S.freeze(() => {
 			canCallHooks = 3
-			asapQueue.forEach(cb => forEachNode(dr, cb))
+			asapQueue.forEach(cb => forEachNode(nr, cb))
 			canCallHooks = 0
 		})
 	})
 	asapQueue = null
-	return dr
+	return nr
 }
 
 function ref(executor) {
@@ -83,24 +98,34 @@ function process(){
 	for (let i = 0; i < rendered.length; i += 2) {
 		const fn = rendered[i]
 		const nr = rendered[i+1]
-		if (fn.length === 0) try {fn()} finally {/**/}
-		else {
-			const previous = globalRange
+		if (fn.length === 0) {
+			const previousZone =Zone
+			setZone(zoneRemoveMap.get(nr))
+			try {
+				fn()
+			} finally {
+				setZone(previousZone)
+			}
+		} else {
+			const previousRange = Range
+			const previousZone =Zone
 			setRange(nr)
+			setZone(zoneRemoveMap.get(nr))
 			try {
 				forEachNode(nr, fn)
 			} finally {
-				setRange(previous)
+				setRange(previousRange)
+				setZone(previousZone)
 			}
 		}
 	}
 
 	canCallHooks = 1
-	scheduled["post-render"].forEach(fn => fn())
-	if (scheduled["post-reflow"].length !== 0) {
+	if (reflowed.length !== 0) {
 		// todo: make sure this isn't removed by eager minifiers
+		//TODO
 		if (doc != null) doc.documentElement.clientWidth
-		scheduled["post-reflow"].forEach(fn => fn())
+		forEachNode(fn => fn())
 	}
 	scheduled = null
 }

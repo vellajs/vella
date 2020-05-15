@@ -1,30 +1,30 @@
+/* eslint-disable arrow-parens */
 // /* global p */
 // import S from "s-js"
+import {DOM, DOMRef, Range, remove, withRange, withRef} from "./dom-utils.js"
+import {getErrorMessage} from "./errors.js"
 import {doc} from "./env.js"
-import {DOMRef, emitWithNodeRange, globalDOM, globalRange, onRender, remove, toList, withRangeForInsertion, withRef} from "./render.js"
+import {emitWithNodeRange} from "./render.js"
 // TODO use V
 import {S} from "./S.js"
 import {v} from "./v.js"
 const sentinel = {keys: [], refs: []}
 
-function normalizeHooks(hooks) {
-	const {beforeUpdate, beforeRemove, onUpdate, render} =
-		(typeof hooks === "function")	? {render: hooks} : hooks
-	return {beforeUpdate, beforeRemove, onUpdate, render}
+function normalize(renderer) {
+	if (renderer == null) throw new TypeError(getErrorMessage("A006"))
+	const type = typeof renderer
+	if (type === "function") return {render: renderer, hooks: null}
 
+	return renderer
 }
-export const List = (keys, hooks) => _List(keys, normalizeHooks(hooks))
 
-export function list(hooks, keys) {
-	// validate only the first time
-	if (this !== list) hooks = normalizeHooks(hooks)
-	if (arguments.length === 1) return list.bind(list, hooks)
-	return v(_List, keys, hooks)
+export function keyed(keys, hooks) {
+	return v(_List, keys, normalize(hooks))
 }
 
 function _List(keys, {beforeUpdate, beforeRemove, onUpdate, render}) {
-	const parentDOMRange = globalRange
-	const {parent: parentNode, nextSibling: initialNextSibling} = globalDOM
+	const parentDOMRange = Range
+	const {parent: parentNode, nextSibling: initialNextSibling} = DOM
 	const placeHolderComment = doc.createComment("")
 	const hasIndices = render.length > 1
 	const removeRef = (ref) => {remove(ref.range); ref.dispose()}
@@ -134,7 +134,7 @@ export function update(
 					S.root((dispose) => { refs[i] = {dispose, range: emitWithNodeRange(render(key, index)), index} })
 				})
 			} else {
-				withRangeForInsertion(parentDOMRange, () => {
+				withRange(parentDOMRange, () => {
 					withRef(DOMRef(parentNode, nextSibling), () => {
 						keys.forEach((key, i) => {
 							const index = hasIndices ? S.value(i) : null
@@ -195,7 +195,7 @@ export function update(
 		if (ks > ke) for (let i = os; i <= oe; i++) remove(oldRefs[i])
 		else if (os > oe) {
 			// p("adding", parentNode, nextSibling)
-			withRangeForInsertion(parentDOMRange, () => {
+			withRange(parentDOMRange, () => {
 				withRef(DOMRef(parentNode, nextSibling), () => {
 					for (let i = ks; i <= ke; i++) S.root((dispose) => { refs[i] = {dispose, range: emitWithNodeRange(render(keys[i]))} })
 				})
@@ -223,7 +223,7 @@ export function update(
 				// p("remove", {old})
 				for (let i = os; i <= oe; i++) if (old[i] != null) remove(oldRefs[i])
 			}
-			withRangeForInsertion(parentDOMRange, () => {
+			withRange(parentDOMRange, () => {
 				withRef(DOMRef(parentNode, nextSibling), () => {
 					if (matched === 0) {
 						// p("just adding")
@@ -245,7 +245,7 @@ export function update(
 									// p("new node")
 									// p({bns: globalDOM.nextSibling.textContent, li})
 									
-									globalDOM.nextSibling = li < lisIndices.length ? oldRefs[oldIndices[lisIndices[li]]].range.firstNode : nextSibling
+									DOM.nextSibling = li < lisIndices.length ? oldRefs[oldIndices[lisIndices[li]]].range.firstNode : nextSibling
 
 									// p({ans: globalDOM.nextSibling.textContent})
 									S.root((dispose) => {
@@ -264,9 +264,9 @@ export function update(
 										oldIndices[oi] = -1
 										// p({bns: globalDOM.nextSibling.textContent})
 
-										globalDOM.nextSibling = li < lisIndices.length ? oldRefs[oldIndices[lisIndices[li]]].range.firstNode : nextSibling
+										DOM.nextSibling = li < lisIndices.length ? oldRefs[oldIndices[lisIndices[li]]].range.firstNode : nextSibling
 										// p({ans: globalDOM.nextSibling.textContent})
-										moveNodes(globalDOM.parent, globalDOM.nextSibling, refs[i].range)
+										moveNodes(DOM.parent, DOM.nextSibling, refs[i].range)
 									}
 								}
 							}
@@ -282,7 +282,7 @@ export function update(
 									if (oIi != null && oIi < oi) {
 										oIi = findNext(oldIndices, oi)
 										// p("set NS", {oi, oIi, oldIndices})
-										globalDOM.nextSibling = oIi == null ? nextSibling : oldRefs[oldIndices[oIi]].range.firstNode
+										DOM.nextSibling = oIi == null ? nextSibling : oldRefs[oldIndices[oIi]].range.firstNode
 									}
 
 									S.root((dispose) => {

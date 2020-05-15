@@ -275,6 +275,12 @@ o.spec("updates", () => {
 
 		o(parent).satisfies(matchDOM(expectedParent2))
 		o(child).satisfies(matchDOM(expectedChild))
+		return new Promise(f => {
+			setTimeout(() => {
+				o(child).satisfies(matchDOM(expectedChild))
+				f()
+			})
+		})
 	})
 	o("nested live zone", () => {
 		const signal = S.data(true)
@@ -350,7 +356,13 @@ o.spec("updates", () => {
 		]))
 
 		o(node).satisfies(matchDOM(expected["111"]))
-		void [[0, 0, 0], [0, 0, 1], [0, 1, 0], [1, 0, 0], [1, 1, 0], [1, 0, 1], [0, 1, 1], [1, 1, 1]].forEach((scenario) => {
+
+		void [
+			[0, 0, 0],
+			[0, 0, 1], [0, 1, 0], [1, 0, 0],
+			[1, 1, 0], [1, 0, 1], [0, 1, 1],
+			[1, 1, 1]
+		].forEach((scenario) => {
 			scenario.forEach((x, i) => s[i](x))
 
 			o(node).satisfies(matchDOM(expected[scenario.join("")]))

@@ -26,4 +26,19 @@ For example:
 		explantaion: "TODO",
 		versionRange: {from: "v0.0.5"}
 	},
+	"A004": {
+		message: "the removeManager can only be set once per liveZone",
+		explanation: "",
+		versionRange: {from: "v0.0.5"}
+	},
+	"A005": {
+		message: "keyed expects a stream or a live zone of keys as first argument",
+		explanation: "",
+		versionRange: {from: "v0.0.5"}
+	},
+	"A006": {
+		message: "keyed expects a renderer as second argument",
+		explanation: "",
+		versionRange: {from: "v0.0.5"}
+	},
 }
