@@ -106,7 +106,7 @@ function check(actual, expected, prefix, error) {
 		if (!(actual instanceof $win.Text)) {
 			error(prefix + "?", `Text node expected, got ${str(actual)}\n`)
 		} else if (actual.data !== expected) {
-			error(prefix + "''", `${str(expected)} expected, got ${str(actual.textContent)}\n`)
+			error(prefix + "?", `${str(expected)} expected, got ${str(actual.textContent)}\n`)
 		}
     
 	} else if (expected instanceof e) {

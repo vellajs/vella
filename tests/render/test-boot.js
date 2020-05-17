@@ -1,10 +1,10 @@
 import o from "ospec"
 
-import {S, setWindow as setVellaWindow, v} from "../../index.js"
+import {setWindow as setVellaWindow} from "../../src/env.js"
+import {S, boot, v} from "../../pieces.js"
 import {matchError} from "../../test-util/matchError.js"
 import {e, matchDOM, setWindow as setMDWindow} from "../../test-util/matchDOM.js"
 import {refreshWindow, win} from "../test-setup.js"
-import {boot} from "../../src/render.js"
 
 
 o.spec("boot", () => {
@@ -17,48 +17,31 @@ o.spec("boot", () => {
 		node = createEl("div")
 	})
 	o("throws when called with bad arguments", () => {
-		o(() => boot(null))
-			.satisfies(matchError({kind: TypeError, pattern: /A002/}))
-		o(() => boot(undefined))
-			.satisfies(matchError({kind: TypeError, pattern: /A002/}))
-		o(() => boot(0))
-			.satisfies(matchError({kind: TypeError, pattern: /A002/}))
-		o(() => boot(1))
-			.satisfies(matchError({kind: TypeError, pattern: /A002/}))
-		o(() => boot([]))
-			.satisfies(matchError({kind: TypeError, pattern: /A002/}))
-		o(() => boot(""))
-			.satisfies(matchError({kind: TypeError, pattern: /A002/}))
-		o(() => boot("ohoh"))
-			.satisfies(matchError({kind: TypeError, pattern: /A002/}))
-		o(() => boot({}))
-			.satisfies(matchError({kind: TypeError, pattern: /A002/}))
-		// fails because `node` doesn't have a parent
-		o(() => boot({parentNode: node}))
-			.satisfies(matchError({kind: TypeError, pattern: /A002/}))
-		o(() => boot(() => {}))
-			.satisfies(matchError({kind: TypeError, pattern: /A002/}))
+		const A002 = matchError({kind: TypeError, pattern: /A002/})
+		const A003 = matchError({kind: TypeError, pattern: /A003/})
 
-		o(() => boot(node, null))
-			.satisfies(matchError({kind: TypeError, pattern: /A003/}))
-		o(() => boot(node, undefined))
-			.satisfies(matchError({kind: TypeError, pattern: /A003/}))
-		o(() => boot(node, 0))
-			.satisfies(matchError({kind: TypeError, pattern: /A003/}))
-		o(() => boot(node, 1))
-			.satisfies(matchError({kind: TypeError, pattern: /A003/}))
-		o(() => boot(node, []))
-			.satisfies(matchError({kind: TypeError, pattern: /A003/}))
-		o(() => boot(node, "ohoh"))
-			.satisfies(matchError({kind: TypeError, pattern: /A003/}))
-		o(() => boot(node, ""))
-			.satisfies(matchError({kind: TypeError, pattern: /A003/}))
-		o(() => boot(node, {}))
-			.satisfies(matchError({kind: TypeError, pattern: /A003/}))
-		o(() => boot(node, createEl("div")))
-			.satisfies(matchError({kind: TypeError, pattern: /A003/}))
-		o(() => boot(node, v(() => {})))
-			.satisfies(matchError({kind: TypeError, pattern: /A003/}))
+		o(() => boot(null)).satisfies(A002)
+		o(() => boot(undefined)).satisfies(A002)
+		o(() => boot(0)).satisfies(A002)
+		o(() => boot(1)).satisfies(A002)
+		o(() => boot([])).satisfies(A002)
+		o(() => boot("")).satisfies(A002)
+		o(() => boot("ohoh")).satisfies(A002)
+		o(() => boot({})).satisfies(A002)
+		// fails because `node` doesn't have a parent
+		o(() => boot({parentNode: node})).satisfies(A002)
+		o(() => boot(() => {})).satisfies(A002)
+
+		o(() => boot(node, null)).satisfies(A003)
+		o(() => boot(node, undefined)).satisfies(A003)
+		o(() => boot(node, 0)).satisfies(A003)
+		o(() => boot(node, 1)).satisfies(A003)
+		o(() => boot(node, [])).satisfies(A003)
+		o(() => boot(node, "ohoh")).satisfies(A003)
+		o(() => boot(node, "")).satisfies(A003)
+		o(() => boot(node, {})).satisfies(A003)
+		o(() => boot(node, createEl("div"))).satisfies(A003)
+		o(() => boot(node, v(() => {}))).satisfies(A003)
 	})
 	o("inserts DOM in a parent", () => {
 		const unboot = boot(node, () => "a")

@@ -1,14 +1,32 @@
 /* eslint-disable arrow-parens */
 // /* global p */
 // import S from "s-js"
+import {componentEarmark} from "./constants.js"
 import {DOM, DOMRef, Range, remove, withRange, withRef} from "./dom-utils.js"
 import {getErrorMessage} from "./errors.js"
 import {doc} from "./env.js"
 import {emitWithNodeRange} from "./render.js"
 // TODO use V
 import {S} from "./S.js"
-import {v} from "./v.js"
-const sentinel = {keys: [], refs: []}
+
+//hooks
+
+let globalHooks
+
+function Hooks(){
+	return {
+		beforeUpdating:null, afterUpdated: null, rendered: null, reflowed: null, updating: null, updated: null, removing: null
+	}
+}
+
+const life = {}
+
+void ["beforeUpdating", "afterUpdated", "rendered", "reflowed", "updating", "updated", "removing"].forEach((name) => {
+	life[name] = function(cb) {
+		if (globalHooks[name] == null) globalHooks[name] = []
+		globalHooks[name].push(cb)
+	}
+})
 
 function normalize(renderer) {
 	if (renderer == null) throw new TypeError(getErrorMessage("A006"))
@@ -19,50 +37,53 @@ function normalize(renderer) {
 }
 
 export function keyed(keys, hooks) {
-	return v(_List, keys, normalize(hooks))
+	const res = Keyed.bind(null, keys, normalize(hooks))
+	res[componentEarmark] = true
+	return res
 }
 
-function _List(keys, {beforeUpdate, beforeRemove, onUpdate, render}) {
+function Keyed(keys, {hooks, render}) {
+	if (typeof hooks === "function") {
+		globalHooks = Hooks()
+		hooks({...life})
+		hooks = globalHooks
+	}
 	const parentDOMRange = Range
 	const {parent: parentNode, nextSibling: initialNextSibling} = DOM
 	const placeHolderComment = doc.createComment("")
 	const hasIndices = render.length > 1
-	const removeRef = (ref) => {remove(ref.range); ref.dispose()}
-	const remover = beforeRemove != null
-		// TODO: FIX beforeRemove not to rely on toList
-		? (ref, key) => beforeRemove(key, toList(ref.range), {remove: removeRef.bind(null, ref)})
-		: removeRef
   
-	let last = sentinel
 	let final
   
-	return S(() => {
+	S(last => {
 		final = false
 		S.cleanup(() => {
 			final = true
-			onRender(() => {
+			Promise.resolve().then(() => {
 				if (final) last.refs.forEach((ref) => {ref.dispose()})
 			})
 		})
-		const isUpdate = last !== sentinel
-		const nextSibling = isUpdate
-			? (
-				last.refs.length === 0
-					? placeHolderComment
-					: last.refs[last.refs.length - 1].range.lastNode.nextSibling
-			)
-			: initialNextSibling
-      
-		if (isUpdate && beforeUpdate != null) try { beforeUpdate(last) } catch(e) { console.error(e) }
-		last = update(keys(), last, render, remover, parentDOMRange, parentNode, nextSibling, placeHolderComment, hasIndices)
-		if (isUpdate && onUpdate != null) try { onUpdate(last) } catch(e) { console.error(e) }
-	})
+		if (last === null) {
+			return create(keys(), render, parentNode, initialNextSibling, placeHolderComment, hasIndices)
+		} else {
+			const nextSibling = last.refs.length === 0
+				? placeHolderComment
+				: last.refs[last.refs.length - 1].range.lastNode.nextSibling
+
+			if (hooks != null && hooks.beforeUpdating != null) hooks.beforeUpdating.forEach(cb => {try {cb()}finally{/**/}})
+			last = update(keys(), last, render, hooks, parentDOMRange, parentNode, nextSibling, placeHolderComment, hasIndices)
+			if (hooks != null && hooks.afterUpdated != null) hooks.afterUpdated.forEach(cb => {try {cb()}finally{/**/}})
+			return last
+		}
+	}, null)
 }
 
 function insert(parent, nextSibling, node) {
 	if (nextSibling == null) parent.appendChild(node)
 	else parent.insertBefore(node, nextSibling)
 }
+
+const remover = (ref) => {remove(ref.range); ref.dispose()}
 
 function moveNodes(parent, nextSibling, range) {
 	if (range.firstNode === range.lastNode) {
@@ -109,45 +130,50 @@ function createMap(keys) {
 	}
 }
 
+
+function create(keys, render, parentNode, nextSibling, placeHolderComment, hasIndices) {
+	if (keys.length === 0) {
+		insert(parentNode, nextSibling, placeHolderComment)
+		return {keys: [], refs: []}
+	} else {
+		keys = [...keys]
+		const refs = Array(keys.length)
+		keys.forEach((key, i) => {
+			const index = hasIndices ? S.value(i) : null
+			S.root((dispose) => { refs[i] = {dispose, range: emitWithNodeRange(render(key, index)), index} })
+		})
+		return {refs, keys}
+	}
+}
+
 // Pilfered from Mithril v2
 export function update(
 	keys,
 	// data from the last render
-	{keys: old, refs: oldRefs, map: oldMap},
+	{keys: old, refs: oldRefs},
 	//hooks
-	render, remove,
+	render, hooks,
 	// DOM context
 	parentDOMRange, parentNode, nextSibling, placeHolderComment,
 	hasIndices
 ) {
 	keys = [...keys]
 	const refs = Array(keys.length)
-	const map = createMap(keys)
 	if (old.length === 0) {
-		const phParent = placeHolderComment.parentNode
-		if (keys.length === 0 && phParent == null) insert(parentNode, nextSibling, placeHolderComment)
 		if (keys.length > 0) {
-			if (phParent == null) {
-				// first render, no need to set the stack context.
-				keys.forEach((key, i) => {
-					const index = hasIndices ? S.value(i) : null
-					S.root((dispose) => { refs[i] = {dispose, range: emitWithNodeRange(render(key, index)), index} })
-				})
-			} else {
-				withRange(parentDOMRange, () => {
-					withRef(DOMRef(parentNode, nextSibling), () => {
-						keys.forEach((key, i) => {
-							const index = hasIndices ? S.value(i) : null
-							S.root((dispose) => {refs[i] = {dispose, range: emitWithNodeRange(render(key, index)), index} })
-						})
+			withRange(parentDOMRange, () => {
+				withRef(DOMRef(parentNode, nextSibling), () => {
+					keys.forEach((key, i) => {
+						const index = hasIndices ? S.value(i) : null
+						S.root((dispose) => {refs[i] = {dispose, range: emitWithNodeRange(render(key, index)), index} })
 					})
 				})
-				parentNode.removeChild(placeHolderComment)
+			})
+			parentNode.removeChild(placeHolderComment)
 			// TODO: sync REFS
-			}
 		}
 	} else if (keys.length === 0) {
-		oldRefs.forEach((ref, i) => remove(ref, old[i]))
+		oldRefs.forEach((ref, i) => remover(ref, old[i]))
 		insert(parentNode, nextSibling, placeHolderComment)
 		// TODO: sync REFS
 	} else {
@@ -192,7 +218,7 @@ export function update(
 			nextSibling = oldRefs[oe].range.firstNode
 			oe--, ke--
 		}
-		if (ks > ke) for (let i = os; i <= oe; i++) remove(oldRefs[i])
+		if (ks > ke) for (let i = os; i <= oe; i++) remover(oldRefs[i])
 		else if (os > oe) {
 			// p("adding", parentNode, nextSibling)
 			withRange(parentDOMRange, () => {
@@ -203,6 +229,7 @@ export function update(
 		} else {
 			// p("match and build old")
 			// inspired by ivi https://github.com/ivijs/ivi/ by Boris Kaul
+			const oldMap = createMap(old)
 			const winLength = ke - ks + 1, oldIndices = new Array(winLength)
 			for (let i = 0; i < winLength; i++) oldIndices[i] = -1 // -1 signals a new node
 
@@ -221,7 +248,7 @@ export function update(
 			}
 			if (matched !== oe - os + 1) {
 				// p("remove", {old})
-				for (let i = os; i <= oe; i++) if (old[i] != null) remove(oldRefs[i])
+				for (let i = os; i <= oe; i++) if (old[i] != null) remover(oldRefs[i])
 			}
 			withRange(parentDOMRange, () => {
 				withRef(DOMRef(parentNode, nextSibling), () => {
@@ -295,15 +322,15 @@ export function update(
 							}
 						}
 					}
-				})})
+				})
+			})
 		}
 		const firstNode = refs[0].firstNode
 		const lastNode = refs[refs.length -1].lastNode
 		if (firstNode !== oldFirstNode) syncParents(refs[0].parentRef, "firstNode", oldFirstNode, refs[0].firstNode)
 		if (lastNode !== oldLastNode) syncParents(refs[0].parentRef, "lastNode", oldLastNode, refs[refs.length -1].lastNode)
 	}
-	
-	return {refs, keys, map}
+	return {refs, keys}
 }
 
 function syncParents(ref, key, old, current) {

@@ -1,7 +1,3 @@
-export {setWindow} from "./src/env.js"
-export {keyed} from "./src/lists.js"
-export {
-	boot,
-} from "./src/render.js"
-export {S} from "./src/S.js"
-export {v, V} from "./src/v.js"
+import * as all from "./pieces.js"
+export const {v} = all
+Object.assign(v, all)

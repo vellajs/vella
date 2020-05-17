@@ -1,11 +1,11 @@
 import {componentEarmark} from "./constants.js"
-import {Range, Zone, forEachNode, fromParent, setRange, setZone, withRange} from "./dom-util.js"
+import {Range, Zone, forEachNode, fromParent, setRange, setZone, withRange} from "./dom-utils.js"
 import {getErrorMessage} from "./errors.js"
 import {doc} from "./env.js"
 import {emit} from "./render.js"
 import {S} from "./S.js"
 
-export {ref, postpone, setRemoveManager}
+export {ref, postpone, setRemoveManager, processHookQueue}
 
 /*
 - cleanup, can be called from both computations and hooks, except from removing
@@ -15,6 +15,7 @@ export {ref, postpone, setRemoveManager}
 
 let canCallHooks = 0
 let asapQueue
+
 function asap(cb) {
 	if (canCallHooks !== 4) throw new Error(getErrorMessage("A001"))
 	asapQueue.push(cb)
@@ -30,14 +31,17 @@ function reflowed(cb) {
 	postpone("reflowed", cb, Range)
 }
 
-
 const zoneRemoveMap = new WeakMap()
 
 const removeHooks = () => ({manager: null, hooks: []})
 
 function removing(cb) {
 	if (Zone.removeHooks == null) Zone.removeHooks = removeHooks()
-	Zone.removeHooks.hooks.push(cb, Zone)
+	const nr = Range
+	Zone.removeHooks.hooks.push(cb.length === 0
+		? result => result.push(cb())
+		: result => forEachNode(nr, cb, false, result)
+	)
 }
 
 function setRemoveManager(cb) {
@@ -53,17 +57,20 @@ function Ref(executor) {
 	asapQueue = []
 	withRange(nr, () => {
 		canCallHooks = 4
-		const res = executor({asap, rendered, reflowed, removing})
-		canCallHooks = 0
-		emit(res)
-		S.freeze(() => {
-			canCallHooks = 3
-			asapQueue.forEach(cb => forEachNode(nr, cb))
+		let res
+		try{
+			res = executor({asap, rendered, reflowed, removing})
+		} finally {
 			canCallHooks = 0
-		})
+		}
+		emit(res)
+	})
+	S.freeze(() => {
+		canCallHooks = 3
+		asapQueue.forEach(cb => forEachNode(nr, cb))
+		canCallHooks = 0
 	})
 	asapQueue = null
-	return nr
 }
 
 function ref(executor) {
@@ -73,33 +80,42 @@ function ref(executor) {
 }
 
 
-let scheduled
 function Scheduled() {
 	return {removing:[], rendered: [], reflowed:[]}
 }
+
+let scheduled
 function postpone(what, fn, nr) {
 	if (scheduled == null) {
 		scheduled = Scheduled()
-		Promise.resolve().then(process)
+		Promise.resolve().then(processDelayedCreation)
 	}
 	scheduled[what].push(fn, nr)
 }
 
-function process(){
-	const {remove, rendered, reflowed} = scheduled
-	// the list may grow while removing so forEach is inadequate
-	for (let i = 0; i < remove.length; i++) {
-		try {
-			remove[i]()
-		} finally {/**/}
-		// todo: detect infinite cycles?
-	}
+function processDelayedCreation(){
+	const {rendered, reflowed} = scheduled
 	canCallHooks = 2
-	for (let i = 0; i < rendered.length; i += 2) {
-		const fn = rendered[i]
-		const nr = rendered[i+1]
+
+	processHookQueue(rendered)
+	canCallHooks = 1
+	if (reflowed.length !== 0) {
+		// todo: make sure this isn't removed by eager minifiers
+		//TODO
+		if (doc != null) doc.documentElement.clientWidth
+		processHookQueue(reflowed)
+		
+	}
+	canCallHooks = 0
+	scheduled = null
+}
+
+function processHookQueue(queue) {
+	for (let i = 0; i < queue.length; i += 2) {
+		const fn = queue[i]
+		const nr = queue[i+1]
 		if (fn.length === 0) {
-			const previousZone =Zone
+			const previousZone = Zone
 			setZone(zoneRemoveMap.get(nr))
 			try {
 				fn()
@@ -119,13 +135,4 @@ function process(){
 			}
 		}
 	}
-
-	canCallHooks = 1
-	if (reflowed.length !== 0) {
-		// todo: make sure this isn't removed by eager minifiers
-		//TODO
-		if (doc != null) doc.documentElement.clientWidth
-		forEachNode(fn => fn())
-	}
-	scheduled = null
 }

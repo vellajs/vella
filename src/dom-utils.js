@@ -35,6 +35,7 @@ function withoutRange(fn) {
 }
 
 function withRange(dr, fn) {
+	if (dr == null) return withoutRange(fn)
 	// console.trace("wrfi")
 	const range = Range
 	const firstInserted = FirstInserted
@@ -67,18 +68,26 @@ function withRef(ref, fn) {
 
 // helpers
 
-function forEachNode(dR, fn, includingComments = false) {
+function forEachNode(nr, fn, includingComments = false, result = null) {
+	const needsMetadata = fn.length > 1
+	const lastFragmentIndex = nr.nodeCount - 1
+	if (lastFragmentIndex === -1) return
 	S.freeze(() => {
-		const {firstNode, lastNode} = dR
+		const {firstNode, lastNode} = nr
 		const boundary = lastNode.nextSibling
 		let node = firstNode
-		let i = 0
+		let fragmentIndex = 0
 		do {
 			const next = node.nextSibling
-			if (includingComments || node.nodeType !== 8) try {fn(node, i++)} finally {/**/}
+			if (includingComments || node.nodeType !== 8) try {
+				const x = needsMetadata
+					? fn(node, {fragmentIndex, lastFragmentIndex})
+					: fn(node)
+				if (result != null) result.push(x)
+			} finally {/**/}
+			fragmentIndex++
 			node = next
 		} while (node !== boundary)
-	
 	})
 }
 

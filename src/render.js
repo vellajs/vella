@@ -2,7 +2,7 @@ import {componentEarmark} from "./constants.js"
 import {
 	DOM,
 	DOMRef, FirstInserted, LastInserted, Range,
-	forEachNode, fromOld, fromParent,
+	fromOld, fromParent,
 	insert, remove, setZone, syncParents, withRange, withRef,
 } from "./dom-utils.js"
 
@@ -35,7 +35,7 @@ function emit(node) {
 
 //stubs
 
-function emitDynamic(fn) {
+function emitDynamic(cb) {
 	let lastNodes
 	let removed = true, rendering = false
 	let lastNr, placeHolderComment, remover
@@ -50,12 +50,12 @@ function emitDynamic(fn) {
 		withRange(nr, () =>
 			withRef(DOMRef(parentNode, nextSibling), () => {
 				try {
-					emit(absorb(fn))
+					emit(absorb(cb))
 				} finally {
 					const wasRemoved = removed
 					removed = FirstInserted == null
 	
-					// console.log({removed, wasRemoved, placeHolderComment})
+					// console.log({removed, wasRemoved, placeHolderComment, cb})
 					// insert even if it was already present to keep the nodeRanges in sync
 					if (removed) {
 						if (placeHolderComment == null) placeHolderComment = doc.createComment("")
@@ -75,19 +75,18 @@ function emitDynamic(fn) {
 					S.cleanup(() => {
 						remover = currentLast => {
 							if (nr.removeHooks != null) {
-								(nr.removeHooks.manager || Promise.all)(nr.removeHooks.hooks.reduce((acc, {nr, f}) => {
-									forEachNode(nr, (node, i) => acc.push(f(node, i)))
-									return acc
-								}, [])).finally(() => {
+								const results = []
+								nr.removeHooks.hooks.forEach(x => x(results))
+								void (nr.removeHooks.manager || Promise.all.bind(Promise))(results).finally(() => {
 									lastNodes.delete(nr.lastNode)
-									const lastNode = lastNodes[Symbol.iterator].next().value
+									const lastNode = lastNodes[Symbol.iterator]().next().value
 									remove(nr)
 									syncParents(nr.parentNodeRange, "lastNode", nr.lastNode, lastNode)
 								})
 							} else {
 								const lastNode = lastNodes == null
 									? currentLast
-									: (lastNodes.delete(nr.lastNode), lastNodes[Symbol.iterator].next().value)
+									: (lastNodes.delete(nr.lastNode), lastNodes[Symbol.iterator]().next().value)
 
 								remove(nr)
 								syncParents(nr.parentNodeRange, "lastNode", nr.lastNode, lastNode)

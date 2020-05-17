@@ -1,6 +1,7 @@
 import o from "ospec"
 
-import {S, V, setWindow as setVellaWindow} from "../../index.js"
+import {setWindow as setVellaWindow} from "../../src/env.js"
+import {S, V} from "../../pieces.js"
 // import {matchError} from "../../test-util/matchError.js"
 import {e, matchDOM, setWindow as setMDWindow} from "../../test-util/matchDOM.js"
 import {refreshWindow, win} from "../test-setup.js"
@@ -362,7 +363,7 @@ o.spec("updates", () => {
 			[0, 0, 1], [0, 1, 0], [1, 0, 0],
 			[1, 1, 0], [1, 0, 1], [0, 1, 1],
 			[1, 1, 1]
-		].forEach((scenario) => {
+		].forEach(scenario => {
 			scenario.forEach((x, i) => s[i](x))
 
 			o(node).satisfies(matchDOM(expected[scenario.join("")]))
