@@ -13,11 +13,13 @@
     "unpkg": "./dist/vella.min.js",
     "scripts": {
         "build": "bash run build",
+        "cover": "bash run cover",
         "lint": "bash run lint",
         "prepublishOnly": "bash run build",
         "test": "bash run test"
     },
     "dependencies": {
+        "c8": "^7.1.2",
         "s-js": "adamhaile/S"
     },
     "devDependencies": {

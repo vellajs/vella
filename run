@@ -53,4 +53,8 @@ function test(){
     ospec
 }
 
+function cover() {
+    c8 -r lcov ./node_modules/.bin/ospec
+}
+
 eval "$@"
