@@ -36,7 +36,7 @@ function setAttrsObject(el, attrs, ns, tagName, hasOverrides) {
 	for (const k in attrs) if (hasOwn.call(attrs, k)) {
 		if (k === "on") setEvents(el, attrs[k])
 		else if (k === "class" || k === "className") setClass(el, attrs[k])
-		else if (k === "style" && typeof value !== "string") setStyle(el, k, attrs[k], hasOverrides)
+		else if (k === "style" && typeof value !== "string") setStyle(el, attrs[k], hasOverrides)
 		else if (k === "$props") Object.keys(attrs.$props).forEach(k => setAttr(el, k, attrs.$props[k], hasOverrides))
 		else if (k === "$attrs") Object.keys(attrs.$attrs).forEach(k => setProp(el, k, attrs.$attrs[k], hasOverrides))
 		else if (ns == null && !avoidAsProp(k) && k in el) setProp(el, k, el[k], hasOverrides)
