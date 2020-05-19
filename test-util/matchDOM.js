@@ -57,11 +57,11 @@ export function e(tagName, attrs = {}, children = []) {
 	if (typeof tagName !== "string" && tagName !== Comment) {
 		throw new TypeError(`invalid tagName value: ${tagName} (${typeof tagName})`)
 	}
-	Object.keys(attrs).forEach((k) => {if (!hasOwn.call(defaultAttrs, k)) {
+	Object.keys(attrs).forEach(k => {if (!hasOwn.call(defaultAttrs, k)) {
 		throw new TypeError(`unexpected key in attrs position: ${str(k)}`)}
 	})
 	if (attrs.hasAttrs) {
-		if (Array.isArray(attrs.hasAttrs)) attrs.hasAttrs.forEach((a) => {
+		if (Array.isArray(attrs.hasAttrs)) attrs.hasAttrs.forEach(a => {
 			if (a != null && typeof a === "object") {
 				validateHasAttrsObject(a)
 			} else if (typeof a !== "string") {
@@ -75,7 +75,7 @@ export function e(tagName, attrs = {}, children = []) {
 			throw new TypeError("Object, or Array of strings and Objects expected for hasAttrs")
 		}
 	}
-	children.forEach((ch) => {
+	children.forEach(ch => {
 		if (!(ch instanceof e) && typeof ch !== "string") {
 			throw new Error("invalid child type: " + typeof ch)
 		}
@@ -86,7 +86,7 @@ export function e(tagName, attrs = {}, children = []) {
 const Comment = e.comment = (txt = "") => e(Comment, {}, [String(txt)])
 
 
-export const matchDOM = expected => (actual) => {
+export const matchDOM = expected => actual => {
 	if (!(expected instanceof e || typeof expected === "string")) {
 		throw new Error("matchDOM expects an `e` instance or a string")
 	}
@@ -172,7 +172,7 @@ const validators = {
 	hasAttrs: (element, hasAttrs, prefix, error) => {
 		const allAttrs = Object.create(null)
 		if (!Array.isArray(hasAttrs)) hasAttrs = [hasAttrs]
-		hasAttrs.forEach((a) => {
+		hasAttrs.forEach(a => {
 			if (typeof a === "string"){
 				allAttrs[a] = true
 				if (!element.hasAttribute(a)) {
@@ -187,13 +187,13 @@ const validators = {
 				}
 			}
 		})
-		element.getAttributeNames().forEach((a) => {
+		element.getAttributeNames().forEach(a => {
 			if (!(a in allAttrs)) error(prefix + `[${a}]`, `unexpected attribute, with value ${str(element.getAttribute(a))}`)
 		})
 	},
 	hasProps: (element, hasProps, prefix, error) => {
 		if (!Array.isArray(hasProps)) hasProps = [hasProps]
-		hasProps.forEach((p) => {
+		hasProps.forEach(p => {
 			if (typeof p === "string" && typeof element[p] === "undefined") {
 				error(prefix + "." + p, "property expected but not found")
 			} else if (typeof p === "object") {
@@ -206,7 +206,7 @@ const validators = {
 		})
 	},
 	lacksProps: (element, lackProps, prefix, error) => {
-		lackProps.forEach((p) => {
+		lackProps.forEach(p => {
 			if (typeof element[p] !== "undefined") {
 				error(prefix + "." + p, `unexpected property, with value ${str(element[p])}`)
 			}

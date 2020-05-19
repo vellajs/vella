@@ -20,13 +20,13 @@ let LastInserted
 const setRange = nr => (Range = nr)
 const setZone = zn => (Zone = zn)
 
-function withoutRange(fn) {
+function withoutRange(cb) {
 	const range = Range
 	const firstInserted = FirstInserted
 	const nodeCount = NodeCount
 	Range = FirstInserted = null
 	try {
-		fn()
+		cb()
 	} finally {
 		Range = range
 		FirstInserted = firstInserted
@@ -34,33 +34,33 @@ function withoutRange(fn) {
 	}
 }
 
-function withRange(dr, fn) {
-	if (dr == null) return withoutRange(fn)
+function withRange(nr, cb) {
+	if (nr == null) return withoutRange(cb)
 	// console.trace("wrfi")
 	const range = Range
 	const firstInserted = FirstInserted
 	const nodeCount = NodeCount
 
-	Range = dr
+	Range = nr
 	FirstInserted = null
 	NodeCount = 0
 	try {
-		fn()
+		cb()
 	} finally {
-		dr.firstNode = FirstInserted
-		dr.lastNode = LastInserted
-		dr.nodeCount = NodeCount
+		nr.firstNode = FirstInserted
+		nr.lastNode = LastInserted
+		nr.nodeCount = NodeCount
 		if (firstInserted != null) FirstInserted = firstInserted
 		Range = range
 		NodeCount += nodeCount
 	}
 }
 
-function withRef(ref, fn) {
+function withRef(ref, cb) {
 	const dom = DOM
 	DOM = ref
 	try {
-		return fn()
+		return cb()
 	} finally {
 		DOM = dom
 	}
@@ -68,8 +68,8 @@ function withRef(ref, fn) {
 
 // helpers
 
-function forEachNode(nr, fn, includingComments = false, result = null) {
-	const needsMetadata = fn.length > 1
+function forEachNode(nr, cb, includingComments = false, result = null) {
+	const needsMetadata = cb.length > 1
 	const lastFragmentIndex = nr.nodeCount - 1
 	if (lastFragmentIndex === -1) return
 	S.freeze(() => {
@@ -81,8 +81,8 @@ function forEachNode(nr, fn, includingComments = false, result = null) {
 			const next = node.nextSibling
 			if (includingComments || node.nodeType !== 8) try {
 				const x = needsMetadata
-					? fn(node, {fragmentIndex, lastFragmentIndex})
-					: fn(node)
+					? cb(node, {fragmentIndex, lastFragmentIndex})
+					: cb(node)
 				if (result != null) result.push(x)
 			} finally {/**/}
 			fragmentIndex++
@@ -103,11 +103,14 @@ function NodeRange({parentNode, parentNodeRange, removed} = {}) {
 	const res = {parentNode, parentNodeRange, firstNode: null, lastNode: null, nodeCount: null, removed: false, removeHooks: null}
 	// Object.defineProperties(res, {
 	// 	firstNode: {
-	// 		set(x){this._fN = x; console.trace("SET fN", x)},
+	// 		set(x){
+	// 			this._fN = x;
+	// 			console.trace("SET fN", x && x.textContent)
+	// 		},
 	// 		get() {return this._fN}
 	// 	},
 	// 	lastNode: {
-	// 		set(x){this._lN = x; console.trace("SET lN", x)},
+	// 		set(x){this._lN = x; console.trace("SET lN", x && x.textContent)},
 	// 		get() {return this._lN}
 	// 	},
 	// })
@@ -134,7 +137,6 @@ function insert(node) {
 }
 
 function remove(nr) {
-	// console.log("removing", {nr})
 	const {parentNode, parentNodeRange} = nr
 	nr.removed = true
 	if (parentNodeRange != null && parentNodeRange.removed) return
@@ -143,7 +145,6 @@ function remove(nr) {
 		return
 	}
 	forEachNode(nr, node => {
-		// console.log({node})
 		if (node.parentNode != null) parentNode.removeChild(node)
 	}, true)
 }
@@ -154,3 +155,4 @@ function syncParents(nr, key, old, current) {
 		syncParents(nr.parentNodeRange, key, old, current)
 	}
 }
+

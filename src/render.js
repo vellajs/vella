@@ -37,7 +37,7 @@ function emit(node) {
 
 function emitDynamic(cb) {
 	let lastNodes
-	let removed = true, rendering = false
+	let rendering = false
 	let lastNr, placeHolderComment, remover
 	S(() => {
 		// Not sure this is needed given how S.js works.
@@ -52,19 +52,20 @@ function emitDynamic(cb) {
 				try {
 					emit(absorb(cb))
 				} finally {
-					const wasRemoved = removed
-					removed = FirstInserted == null
-	
-					// console.log({removed, wasRemoved, placeHolderComment, cb})
+					const empty = FirstInserted == null
+					const wasEmpty = lastNr != null && lastNr.firstNode === placeHolderComment
+
 					// insert even if it was already present to keep the nodeRanges in sync
-					if (removed) {
+					if (empty) {
 						if (placeHolderComment == null) placeHolderComment = doc.createComment("")
 						insert(placeHolderComment)
 					}
 					if (nr.removeHooks != null && lastNodes == null) lastNodes = new Set()
 					if (lastNodes != null) lastNodes.add(LastInserted)
 					if (lastNr != null) syncParents(nr.parentNodeRange, "firstNode", lastNr.firstNode, FirstInserted)
-					if (remover != null && !(removed && wasRemoved)) remover(LastInserted)
+
+					if (remover != null && !(empty && wasEmpty)) remover(LastInserted)
+
 					// Node removal can be racy if there are several concurrent `removing` phases that overlap, and if an earlier
 					// `removing` phase resolves after one that started later.
 					// When nodes are removed, It is important that a parent live zone is updated correctly if present.
@@ -118,7 +119,7 @@ function boot(parentNode, main) {
 		String(parentNode.nodeType)[0] !== "1"
 		|| nextSibling != null && typeof nextSibling.nodeType !== "number"
 	) throw TypeError(getErrorMessage("A002"))
-	if (typeof main !== "function" || main[componentEarmark]) throw new TypeError(getErrorMessage("A003"))
+	if (typeof main !== "function" || hasOwn.call(main, componentEarmark)) throw new TypeError(getErrorMessage("A003"))
 
 	return S.root(dispose => {
 		const range = withRef(DOMRef(parentNode, nextSibling), () => emitWithNodeRange(main))

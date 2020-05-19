@@ -1,4 +1,4 @@
-import {componentEarmark} from "./constants.js"
+import {component} from "./constants.js"
 import {Range, Zone, forEachNode, fromParent, setRange, setZone, withRange} from "./dom-utils.js"
 import {getErrorMessage} from "./errors.js"
 import {doc} from "./env.js"
@@ -74,9 +74,7 @@ function Ref(executor) {
 }
 
 function ref(executor) {
-	const res = Ref.bind(null, executor)
-	res[componentEarmark] = true
-	return res
+	return component(Ref, executor)
 }
 
 

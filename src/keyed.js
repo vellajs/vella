@@ -1,8 +1,8 @@
 /* eslint-disable arrow-parens */
 // /* global p */
 // import S from "s-js"
-import {componentEarmark} from "./constants.js"
-import {DOM, DOMRef, Range, remove, withRange, withRef} from "./dom-utils.js"
+import {component} from "./constants.js"
+import {DOM, DOMRef, Range, forEachNode, insert, remove, setRange, syncParents, withRef} from "./dom-utils.js"
 import {getErrorMessage} from "./errors.js"
 import {doc} from "./env.js"
 import {emitWithNodeRange} from "./render.js"
@@ -37,9 +37,7 @@ function normalize(renderer) {
 }
 
 export function keyed(keys, hooks) {
-	const res = Keyed.bind(null, keys, normalize(hooks))
-	res[componentEarmark] = true
-	return res
+	return component(Keyed, keys, normalize(hooks))
 }
 
 function Keyed(keys, {hooks, render}) {
@@ -49,7 +47,7 @@ function Keyed(keys, {hooks, render}) {
 		hooks = globalHooks
 	}
 	const parentDOMRange = Range
-	const {parent: parentNode, nextSibling: initialNextSibling} = DOM
+	const {parent: parentNode} = DOM
 	const placeHolderComment = doc.createComment("")
 	const hasIndices = render.length > 1
   
@@ -60,16 +58,15 @@ function Keyed(keys, {hooks, render}) {
 		S.cleanup(() => {
 			final = true
 			Promise.resolve().then(() => {
-				if (final) last.refs.forEach((ref) => {ref.dispose()})
+				if (final && last != null) last.refs.forEach((ref) => {ref.dispose()})
 			})
 		})
 		if (last === null) {
-			return create(keys(), render, parentNode, initialNextSibling, placeHolderComment, hasIndices)
+			return create(keys(), render, placeHolderComment, hasIndices)
 		} else {
 			const nextSibling = last.refs.length === 0
 				? placeHolderComment
 				: last.refs[last.refs.length - 1].range.lastNode.nextSibling
-
 			if (hooks != null && hooks.beforeUpdating != null) hooks.beforeUpdating.forEach(cb => {try {cb()}finally{/**/}})
 			last = update(keys(), last, render, hooks, parentDOMRange, parentNode, nextSibling, placeHolderComment, hasIndices)
 			if (hooks != null && hooks.afterUpdated != null) hooks.afterUpdated.forEach(cb => {try {cb()}finally{/**/}})
@@ -78,25 +75,20 @@ function Keyed(keys, {hooks, render}) {
 	}, null)
 }
 
-function insert(parent, nextSibling, node) {
-	if (nextSibling == null) parent.appendChild(node)
-	else parent.insertBefore(node, nextSibling)
-}
-
 const remover = (ref) => {remove(ref.range); ref.dispose()}
 
 function moveNodes(parent, nextSibling, range) {
 	if (range.firstNode === range.lastNode) {
-		insert(parent, nextSibling, range.firstNode)
+		parent.insertBefore(range.firstNode, nextSibling)
 	} else {
 		const last = range.lastNode
 		let node = range.firstNode, next
 		// eslint-disable-next-line no-constant-condition
 		while (true) {
 			next = node.nextSibling
-			insert(parent, nextSibling, node)
+			parent.insertBefore(node, nextSibling)
 			if (next === last) {
-				insert(parent, nextSibling, last)
+				parent.insertBefore(last, nextSibling)
 				break
 			}
 			node = next
@@ -131,9 +123,9 @@ function createMap(keys) {
 }
 
 
-function create(keys, render, parentNode, nextSibling, placeHolderComment, hasIndices) {
+function create(keys, render, placeHolderComment, hasIndices) {
 	if (keys.length === 0) {
-		insert(parentNode, nextSibling, placeHolderComment)
+		insert(placeHolderComment)
 		return {keys: [], refs: []}
 	} else {
 		keys = [...keys]
@@ -154,32 +146,43 @@ export function update(
 	//hooks
 	render, hooks,
 	// DOM context
-	parentDOMRange, parentNode, nextSibling, placeHolderComment,
+	parentNodeRange, parentNode, nextSibling, placeHolderComment,
 	hasIndices
 ) {
 	keys = [...keys]
 	const refs = Array(keys.length)
+	if (hooks != null && hooks.updating != null) {
+		const lastKeyIndex = old.length
+		old.forEach((key, i) => {
+			hooks.updating.forEach(hook => {
+				const cb = hook.length > 1 ? (node, md) => hook(node, {...md, key, keyIndex: i, lastKeyIndex}) : node => hook(node)
+				forEachNode(refs[i].range, cb)
+			})
+		})
+	}
 	if (old.length === 0) {
 		if (keys.length > 0) {
-			withRange(parentDOMRange, () => {
-				withRef(DOMRef(parentNode, nextSibling), () => {
-					keys.forEach((key, i) => {
-						const index = hasIndices ? S.value(i) : null
-						S.root((dispose) => {refs[i] = {dispose, range: emitWithNodeRange(render(key, index)), index} })
-					})
+			const range = Range
+			setRange(parentNodeRange)
+			withRef(DOMRef(parentNode, nextSibling), () => {
+				keys.forEach((key, i) => {
+					const index = hasIndices ? S.value(i) : null
+					S.root((dispose) => {refs[i] = {dispose, range: emitWithNodeRange(render(key, index)), index} })
 				})
 			})
+			setRange(range)
 			parentNode.removeChild(placeHolderComment)
-			// TODO: sync REFS
+			syncParents(parentNodeRange, "firstNode", placeHolderComment, refs[0].range.firstNode)
+			syncParents(parentNodeRange, "lastNode", placeHolderComment, refs[refs.length - 1].range.lastNode)
 		}
 	} else if (keys.length === 0) {
 		oldRefs.forEach((ref, i) => remover(ref, old[i]))
-		insert(parentNode, nextSibling, placeHolderComment)
-		// TODO: sync REFS
+		withRef(DOMRef(parentNode, nextSibling), () => {
+			insert(placeHolderComment)
+		})
+		syncParents(parentNodeRange, "firstNode", oldRefs[0].range.firstNode, placeHolderComment)
+		syncParents(parentNodeRange, "lastNode", oldRefs[oldRefs.length - 1].range.lastNode, placeHolderComment)
 	} else {
-		const oldFirstNode = oldRefs[0].range.firstNode
-		const oldLastNode = oldRefs[oldRefs.length - 1].range.lastNode
-		let nextSibling = oldLastNode.nextSibling
 		let os = 0, ks = 0, oe = old.length - 1, ke = keys.length - 1
 		// bottom-up
 		while (oe >= os && ke >= ks && old[oe] === keys[ke]) {
@@ -221,13 +224,13 @@ export function update(
 		if (ks > ke) for (let i = os; i <= oe; i++) remover(oldRefs[i])
 		else if (os > oe) {
 			// p("adding", parentNode, nextSibling)
-			withRange(parentDOMRange, () => {
-				withRef(DOMRef(parentNode, nextSibling), () => {
-					for (let i = ks; i <= ke; i++) S.root((dispose) => { refs[i] = {dispose, range: emitWithNodeRange(render(keys[i]))} })
-				})
+			const range = Range
+			setRange(parentNodeRange)
+			withRef(DOMRef(parentNode, nextSibling), () => {
+				for (let i = ks; i <= ke; i++) S.root((dispose) => { refs[i] = {dispose, range: emitWithNodeRange(render(keys[i]))} })
 			})
+			setRange(range)
 		} else {
-			// p("match and build old")
 			// inspired by ivi https://github.com/ivijs/ivi/ by Boris Kaul
 			const oldMap = createMap(old)
 			const winLength = ke - ks + 1, oldIndices = new Array(winLength)
@@ -250,94 +253,86 @@ export function update(
 				// p("remove", {old})
 				for (let i = os; i <= oe; i++) if (old[i] != null) remover(oldRefs[i])
 			}
-			withRange(parentDOMRange, () => {
-				withRef(DOMRef(parentNode, nextSibling), () => {
-					if (matched === 0) {
-						// p("just adding")
-						for (let i = ks; i <= ke; i++) S.root((dispose) => { refs[i] = {dispose, range: emitWithNodeRange(render(keys[i]))} })
-					} else {
-						// p("going LIS", JSON.stringify({pos: positionSoFar, matched, oldIndices, refs: refs.map(first), oldRefs: oldRefs.map(first), oldMap: oldMap.map}))
+			const range = Range
+			setRange(parentNodeRange)
+			withRef(DOMRef(parentNode, nextSibling), () => {
+				if (matched === 0) {
+					// p("just adding")
+					for (let i = ks; i <= ke; i++) S.root((dispose) => { refs[i] = {dispose, range: emitWithNodeRange(render(keys[i]))} })
+				} else {
+					// p("going LIS", JSON.stringify({pos: positionSoFar, matched, oldIndices, refs: refs.map(first), oldRefs: oldRefs.map(first), oldMap: oldMap.map}))
           
-						// some nodes are out of order, we need the LIS for optimal moves
-						if (positionSoFar === -1) {
-							// p("out of order")
-							// the indices of the indices of the items that are part of the
-							// longest increasing subsequence in the oldIndices list
-							lisIndices = makeLisIndices(oldIndices)
-							// p({lisIndices})
-							li = 0
-							for (i = ks; i <= ke; i++) {
-								const oi = i - ks
-								if (oldIndices[oi] === -1) {
-									// p("new node")
-									// p({bns: globalDOM.nextSibling.textContent, li})
+					// some nodes are out of order, we need the LIS for optimal moves
+					if (positionSoFar === -1) {
+						// p("out of order")
+						// the indices of the indices of the items that are part of the
+						// longest increasing subsequence in the oldIndices list
+						lisIndices = makeLisIndices(oldIndices)
+						// p({lisIndices})
+						li = 0
+						for (i = ks; i <= ke; i++) {
+							const oi = i - ks
+							if (oldIndices[oi] === -1) {
+								// p("new node")
+								// p({bns: globalDOM.nextSibling.textContent, li})
 									
-									DOM.nextSibling = li < lisIndices.length ? oldRefs[oldIndices[lisIndices[li]]].range.firstNode : nextSibling
+								DOM.nextSibling = li < lisIndices.length ? oldRefs[oldIndices[lisIndices[li]]].range.firstNode : nextSibling
 
-									// p({ans: globalDOM.nextSibling.textContent})
-									S.root((dispose) => {
-										const index = hasIndices ? S.value(i) : null
-										refs[i] = {dispose, range: emitWithNodeRange(render(keys[i], index)), index}
-									})
-									// p(JSON.stringify({i, li, ks, oi, oldIndices}))
-								} else {
-									// p("old node")
-									// p(JSON.stringify({i, li, ks, oi, oldIndices}))
-									if (hasIndices) refs[i].index(i)
-									if (li < lisIndices.length && lisIndices[li] === oi) {
-										li++
-									}
-									else {
-										oldIndices[oi] = -1
-										// p({bns: globalDOM.nextSibling.textContent})
-
-										DOM.nextSibling = li < lisIndices.length ? oldRefs[oldIndices[lisIndices[li]]].range.firstNode : nextSibling
-										// p({ans: globalDOM.nextSibling.textContent})
-										moveNodes(DOM.parent, DOM.nextSibling, refs[i].range)
-									}
+								// p({ans: globalDOM.nextSibling.textContent})
+								S.root((dispose) => {
+									const index = hasIndices ? S.value(i) : null
+									refs[i] = {dispose, range: emitWithNodeRange(render(keys[i], index)), index}
+								})
+								// p(JSON.stringify({i, li, ks, oi, oldIndices}))
+							} else {
+								// p("old node")
+								// p(JSON.stringify({i, li, ks, oi, oldIndices}))
+								if (hasIndices) refs[i].index(i)
+								if (li < lisIndices.length && lisIndices[li] === oi) {
+									li++
 								}
-							}
-						} else {
-						// p("in order", {ks, ke})
-							let oIi = -1
-							for (i = ks; i <= ke; i++) {
-								const oi = i - ks
-								os = oldIndices[oi]
-								// p({oi, os, oldIndices, map, keys, old})
-								if (os === -1) {
-									// p("os === -1", {oIi, oi})
-									if (oIi != null && oIi < oi) {
-										oIi = findNext(oldIndices, oi)
-										// p("set NS", {oi, oIi, oldIndices})
-										DOM.nextSibling = oIi == null ? nextSibling : oldRefs[oldIndices[oIi]].range.firstNode
-									}
+								else {
+									oldIndices[oi] = -1
+									// p({bns: globalDOM.nextSibling.textContent})
 
-									S.root((dispose) => {
-										const index = hasIndices ? S.value(i) : null
-										refs[i] = {dispose, range: emitWithNodeRange(render(keys[i], index)), index}
-									})
-								} else {
-									if (hasIndices) refs[i].index(i)
+									DOM.nextSibling = li < lisIndices.length ? oldRefs[oldIndices[lisIndices[li]]].range.firstNode : nextSibling
+									// p({ans: globalDOM.nextSibling.textContent})
+									moveNodes(DOM.parent, DOM.nextSibling, refs[i].range)
 								}
 							}
 						}
+					} else {
+						// p("in order", {ks, ke})
+						let oIi = -1
+						for (i = ks; i <= ke; i++) {
+							const oi = i - ks
+							os = oldIndices[oi]
+							// p({oi, os, oldIndices, map, keys, old})
+							if (os === -1) {
+								// p("os === -1", {oIi, oi})
+								if (oIi != null && oIi < oi) {
+									oIi = findNext(oldIndices, oi)
+									// p("set NS", {oi, oIi, oldIndices})
+									DOM.nextSibling = oIi == null ? nextSibling : oldRefs[oldIndices[oIi]].range.firstNode
+								}
+
+								S.root((dispose) => {
+									const index = hasIndices ? S.value(i) : null
+									refs[i] = {dispose, range: emitWithNodeRange(render(keys[i], index)), index}
+								})
+							} else {
+								if (hasIndices) refs[i].index(i)
+							}
+						}
 					}
-				})
+				}
 			})
+			setRange(range)
 		}
-		const firstNode = refs[0].firstNode
-		const lastNode = refs[refs.length -1].lastNode
-		if (firstNode !== oldFirstNode) syncParents(refs[0].parentRef, "firstNode", oldFirstNode, refs[0].firstNode)
-		if (lastNode !== oldLastNode) syncParents(refs[0].parentRef, "lastNode", oldLastNode, refs[refs.length -1].lastNode)
+		syncParents(parentNodeRange, "firstNode", oldRefs[0].range.firstNode, refs[0].range.firstNode)
+		syncParents(parentNodeRange, "lastNode", oldRefs[oldRefs.length - 1].range.lastNode, refs[refs.length - 1].range.lastNode)
 	}
 	return {refs, keys}
-}
-
-function syncParents(ref, key, old, current) {
-	if (ref != null && ref[key] === old) {
-		ref.parentRef[key] = current
-		syncParents(ref.parentRef, key, old, current)
-	}
 }
 
 function findNext(list, index) {

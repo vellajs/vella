@@ -28,3 +28,4 @@ o.before(() => {
 o.after(() => {
 	if (currentRoot != null) currentRoot.parentElement.removeChild(currentRoot)
 })
+Error.stackTraceLimit = 100

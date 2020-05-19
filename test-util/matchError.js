@@ -2,15 +2,15 @@ function str(x) {
 	return JSON.stringify(x)
 }
 
-export const matchError = ({kind, pattern, message}) => (fn) => {
+export const matchError = ({kind, pattern, message}) => cb => {
 	if (kind === undefined && pattern === undefined && message === undefined) throw new TypeError("matchErr expects at least on kind, pattern or message argument")
 	if (kind !== undefined && typeof kind !== "function") throw new TypeError("the `matchErr` kind must be a function")
 	if (pattern !== undefined && (!(pattern instanceof RegExp))) throw new TypeError("the `matchErr` pattern must be a RegExp")
 	if (message !== undefined && typeof message !== "string") throw new TypeError("the `matchErr` pattern must be a string")
-	if (typeof fn !== "function") throw new TypeError("`matchErr` can only validate functions, not " + typeof fn)
+	if (typeof cb !== "function") throw new TypeError("`matchErr` can only validate functions, not " + typeof cb)
 	try {
-		fn()
-		return {pass: false, message: `${fn}
+		cb()
+		return {pass: false, message: `${cb}
 
 should have thrown.`}
 	} catch (e) {

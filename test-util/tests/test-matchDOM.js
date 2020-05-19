@@ -35,7 +35,7 @@ function cmt(txt) {
 
 const PASS = {pass: true, message: ""}
 
-const failure = msg => (result) => {
+const failure = msg => result => {
 	if (result == null) {
 		return {pass: false, message: "Unexpected nullish: " + String(result)}
 

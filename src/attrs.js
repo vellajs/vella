@@ -93,7 +93,7 @@ function setAttr(el, k, v, hasOverrides) {
 
 function setClass(el, value) {
 	if (typeof value === "function") {
-		S((old) => {
+		S(old => {
 			if (old != null) el.classList.remove(old)
 			const current = absorb(value)
 			el.classList.add(current)
@@ -107,7 +107,7 @@ function setClass(el, value) {
 
 function setEvents(el, events) {
 	if (typeof events === "function") {
-		S((then) => {
+		S(then => {
 			const now = absorb(events)
 			eventHelper(el, then, "removeEventListener")
 			eventHelper(el, now, "addEventListener")
@@ -209,6 +209,7 @@ function parseAndSetAttrs(element, s, ns) {
 	let j = 0
 	let classes
 	while(match = attrsParser.exec(s)) {
+		/* c8 ignore next */
 		if (j++ === 1000) {console.error("attrs parser bug for " + s);break}
 		if (match[6]!= null) throw new RangeError(`unexpected attr: ${s.slice(match.index)}`)
 		if (match[1] != null) {

@@ -1,5 +1,5 @@
 import {parseAndSetAttrs, setAttrs} from "./attrs.js"
-import {componentEarmark} from "./constants.js"
+import {component} from "./constants.js"
 import {DOMRef, withRef, withoutRange} from "./dom-utils.js"
 import {doc, tagCache} from "./env.js"
 import {emit} from "./render.js"
@@ -106,12 +106,6 @@ function V(tagName, attrs, children) {
 	}
 	else if (typeof tagName === "string") return element(tagName, attrs, children)
 	else throw new RangeError("string or function expected as tagName, got " + typeof tagName)
-}
-
-function component(tagName, attrs, children) {
-	const cmp = tagName.bind(null, attrs, children)
-	cmp[componentEarmark] = 1
-	return cmp
 }
 
 function element(tagName, attrs, children) {

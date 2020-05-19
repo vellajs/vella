@@ -22,6 +22,6 @@ function decorateS(f) {
 }
 
 const S_ = decorateS(S)
-Object.keys(S).forEach((m) => {
+Object.keys(S).forEach(m => {
 	S_[m] = (m === "cleanup" || m === "sample" || m === "root" || m === "freeze") ? S[m] : decorateS(S[m])
 })
