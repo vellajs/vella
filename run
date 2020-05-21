@@ -46,7 +46,7 @@ function ci(){
 
 
 function lint(){
-    eslint . --cache
+    eslint $@ --cache .
 }
 
 function test(){

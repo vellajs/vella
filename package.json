@@ -1,6 +1,6 @@
 {
     "name": "vella",
-    "version": "0.0.5-pre-3",
+    "version": "0.0.5-pre-6",
     "description": "stream-based Web framework",
     "type": "module",
     "main": "index.js",
@@ -19,13 +19,13 @@
         "test": "bash run test"
     },
     "dependencies": {
-        "c8": "^7.1.2",
         "s-js": "adamhaile/S"
     },
     "devDependencies": {
         "@rollup/plugin-alias": "^3.1.0",
         "@rollup/plugin-commonjs": "11.0.2",
         "@rollup/plugin-node-resolve": "7.1.1",
+        "c8": "^7.1.2",
         "eslint": "^6.8.0",
         "fs-extra": "9.0.0",
         "jsdom": "^16.2.0",

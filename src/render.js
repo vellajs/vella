@@ -36,14 +36,12 @@ function emit(node) {
 //stubs
 
 function emitDynamic(cb) {
-	let lastNodes
-	let rendering = false
+
+	const lastNodes = new Set()
 	let lastNr, placeHolderComment, remover
 	S(() => {
 		// Not sure this is needed given how S.js works.
 		// It would be nice to let users set a recursion limit.
-		if (rendering) throw new Error("Don't update the model while rendering")
-		rendering = true
 		const nr = setZone(lastNr == null ? fromParent(Range) : fromOld(lastNr))
 		const nextSibling = lastNr != null ? lastNr.firstNode : DOM.nextSibling
 		const {parentNode} = nr
@@ -60,21 +58,22 @@ function emitDynamic(cb) {
 						if (placeHolderComment == null) placeHolderComment = doc.createComment("")
 						insert(placeHolderComment)
 					}
-					if (nr.removeHooks != null && lastNodes == null) lastNodes = new Set()
-					if (lastNodes != null) lastNodes.add(LastInserted)
+
+					// sync parent on redraw. LastNode is sinced when `remove` happens (either sync or async)
 					if (lastNr != null) syncParents(nr.parentNodeRange, "firstNode", lastNr.firstNode, FirstInserted)
 
-					if (remover != null && !(empty && wasEmpty)) remover(LastInserted)
-
-					// Node removal can be racy if there are several concurrent `removing` phases that overlap, and if an earlier
-					// `removing` phase resolves after one that started later.
+					// Node removal can be racy if there are several concurrent `removing` phases that overlap, and
+					// if an earlier `removing` phase resolves after one that started later.
 					// When nodes are removed, It is important that a parent live zone is updated correctly if present.
-					// Since on update, the new nodes are inserted before the old ones, we can keep a stack of `lastNodes` on insertion,
-					// then, on removal, remove the one of the NodeRange that is being removed, and sync the parent with the oldest
-					// remaining `lastNode`.
-					// the lastNodes set is created lazily when needed.
+					// Since on update, the new nodes are inserted before the old ones, we can keep a stack of `lastNodes`
+					// on insertion, then, on removal, remove the one of the NodeRange that is being removed, and sync
+					// the parent with the oldest remaining `lastNode`.
+					lastNodes.add(LastInserted)
+
+					if (remover != null && !(empty && wasEmpty)) remover()
+
 					S.cleanup(() => {
-						remover = currentLast => {
+						remover = () => {
 							if (nr.removeHooks != null) {
 								const results = []
 								nr.removeHooks.hooks.forEach(x => x(results))
@@ -85,9 +84,8 @@ function emitDynamic(cb) {
 									syncParents(nr.parentNodeRange, "lastNode", nr.lastNode, lastNode)
 								})
 							} else {
-								const lastNode = lastNodes == null
-									? currentLast
-									: (lastNodes.delete(nr.lastNode), lastNodes[Symbol.iterator]().next().value)
+								lastNodes.delete(nr.lastNode)
+								const lastNode = lastNodes[Symbol.iterator]().next().value
 
 								remove(nr)
 								syncParents(nr.parentNodeRange, "lastNode", nr.lastNode, lastNode)
@@ -95,7 +93,6 @@ function emitDynamic(cb) {
 						}
 					})
 					lastNr = nr
-					rendering = false
 				}
 			})
 		)

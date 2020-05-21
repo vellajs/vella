@@ -1043,6 +1043,75 @@ o.spec("ref", () => {
 		})
 	})
 	o.spec("nested calls", () => {
-		//TODO
+		o("call removing nested from asap", async () => {
+			const signal = S.data("true")
+			const expected1 = matchDOM(e("div", {}, [e("a")]))
+			const expected2 = matchDOM(e("div", {}, [e.comment(), e("a")]))
+			const expected3 = matchDOM(e("div", {}, [e.comment()]))
+			const expectedChild = matchDOM(e("a"))
+			let removing
+			let asap
+			const node = root(() => v("div", {}, () => signal() && ref(life => {
+				asap = o.spy(child => {
+					o(child).satisfies(expectedChild)
+					removing = o.spy(() => Promise.resolve())
+					life.removing(removing)
+				})
+				life.asap(asap)
+				return v("a")
+			})))
+
+			o(asap.callCount).equals(1)
+			o(removing.callCount).equals(0)
+			o(node).satisfies(expected1)
+
+			signal(false)
+
+			o(removing.callCount).equals(1)
+			o(node).satisfies(expected2)
+
+			await nextTick()
+			await nextTick()
+
+			o(removing.callCount).equals(1)
+			o(node).satisfies(expected3)
+		})
+		o("call removing nested from rendered", async () => {
+			const signal = S.data("true")
+			const expected1 = matchDOM(e("div", {}, [e("a")]))
+			const expected2 = matchDOM(e("div", {}, [e.comment(), e("a")]))
+			const expected3 = matchDOM(e("div", {}, [e.comment()]))
+			const expectedChild = matchDOM(e("a"))
+			let removing
+			let rendered
+			const node = root(() => v("div", {}, () => signal() && ref(life => {
+				rendered = o.spy(child => {
+					o(child).satisfies(expectedChild)
+					removing = o.spy(() => Promise.resolve())
+					life.removing(removing)
+				})
+				life.rendered(rendered)
+				return v("a")
+			})))
+
+			o(rendered.callCount).equals(0)
+
+			await nextTick()
+
+			o(rendered.callCount).equals(1)
+			o(removing.callCount).equals(0)
+			o(node).satisfies(expected1)
+
+			signal(false)
+
+			o(removing.callCount).equals(1)
+			o(node).satisfies(expected2)
+
+			await nextTick()
+			await nextTick()
+
+			o(removing.callCount).equals(1)
+			o(node).satisfies(expected3)
+		})
 	})
 })

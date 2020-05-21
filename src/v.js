@@ -39,7 +39,7 @@ function svg(...args) {
 	try {
 		return v(...args)
 	} finally {
-		NS = null
+		NS = ""
 	}
 }
 
@@ -48,7 +48,7 @@ function math(...args) {
 	try {
 		return v(...args)
 	} finally {
-		NS = null
+		NS = ""
 	}
 }
 
@@ -86,7 +86,7 @@ function SVG(...args) {
 	try {
 		return V(...args)
 	} finally {
-		NS = null
+		NS = ""
 	}
 }
 
@@ -95,7 +95,7 @@ function MATH(...args) {
 	try {
 		return V(...args)
 	} finally {
-		NS = null
+		NS = ""
 	}
 }
 

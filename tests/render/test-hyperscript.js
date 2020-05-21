@@ -352,6 +352,28 @@ o.spec("hyperscript", () => {
 			
 						o(element.className).equals("a b")
 					})
+					o("handles style objects", () => {
+						const element = v("div", {style: {color: "red"}})
+
+						o(element.style.color).equals("red")
+					})
+					o("handles style objects with non-listening live zones as values", () => {
+						const element = v("div", {style: {color: () => "red"}})
+
+						o(element.style.color).equals("red")
+					})
+					o("handles style objects with streams as values", () => {
+						const signal = S.data("red")
+						const element = v("div", {style: {color: signal}})
+
+						o(element.style.color).equals("red")
+					})
+					o("handles an input's value", () => {
+						const expected = matchDOM(e("input", {hasProps:{value: "foo"}}))
+						const element = v("input", {value: "foo"})
+
+						o(element).satisfies(expected)
+					})
 				})
 				o.spec("custom element attrs", function() {
 					o("handles string attr", function() {

@@ -39,7 +39,7 @@ function setAttrsObject(el, attrs, ns, tagName, hasOverrides) {
 		else if (k === "style" && typeof value !== "string") setStyle(el, attrs[k], hasOverrides)
 		else if (k === "$props") Object.keys(attrs.$props).forEach(k => setAttr(el, k, attrs.$props[k], hasOverrides))
 		else if (k === "$attrs") Object.keys(attrs.$attrs).forEach(k => setProp(el, k, attrs.$attrs[k], hasOverrides))
-		else if (ns == null && !avoidAsProp(k) && k in el) setProp(el, k, el[k], hasOverrides)
+		else if (ns === "" && !avoidAsProp(k) && k in el) setProp(el, k, attrs[k], hasOverrides)
 		else setAttr(el, k, attrs[k], hasOverrides)
 	}
 }
@@ -83,7 +83,7 @@ function setAttr(el, k, v, hasOverrides) {
 			if (dynAttrs == null) {
 				dynAttrs = Object.create(null)
 			}
-			dynProps[k] = node
+			dynAttrs[k] = node
 		}
 	} else {
 		if (v == null) el.removeAttribute(k)
@@ -175,7 +175,6 @@ function setStyleProperty(el, prop, v, hasOverrides) {
 			if (dynStyleProps == null) dynStyleProps = {}
 			dynStyleProps[prop] = node
 		}
-		dynStyleProps[prop] = node
 	} else {
 		el.style[prop] = skippable(v) ? "" : v
 	}
@@ -227,7 +226,7 @@ function parseAndSetAttrs(element, s, ns) {
 		}
 	}
 	if (classes != null) {
-		if (ns != null) element.className = classes.join(" ")
+		if (ns === "") element.className = classes.join(" ")
 		else element.setAttribute("class", classes.join(" "))
 	}
 }
