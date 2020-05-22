@@ -1,5 +1,5 @@
 import {S} from "./S.js"
-import {absorb, hasOwn, skippable} from "./util.js"
+import {hasOwn, skippable} from "./util.js"
 
 export {parseAndSetAttrs, setAttrs}
 
@@ -51,7 +51,7 @@ function setProp(el, k, v, hasOverrides) {
 		S.disposeNode(dyn)
 	}
 	if (typeof v === "function") {
-		const {node} = S.makeComputationNode(() => el[k] = absorb(v), null, false, false)
+		const {node} = S.makeComputationNode(() => el[k] = v(), null, false, false)
 		if (node != null && hasOverrides) {
 			if (dynProps == null) {
 				dynProps = Object.create(null)
@@ -74,7 +74,7 @@ function setAttr(el, k, v, hasOverrides) {
 	}
 	if (typeof v === "function") {
 		const {node} = S.makeComputationNode(() => {
-			const value = absorb(v)
+			const value = v()
 			// remove no matter what, there may be a value set by a previous attrs object
 			if (value == null) el.removeAttribute(k)
 			else el.setAttribute(k, value)
@@ -95,7 +95,7 @@ function setClass(el, value) {
 	if (typeof value === "function") {
 		S(old => {
 			if (old != null) el.classList.remove(old)
-			const current = absorb(value)
+			const current = value()
 			el.classList.add(current)
 			return current
 		}, null)
@@ -108,7 +108,7 @@ function setClass(el, value) {
 function setEvents(el, events) {
 	if (typeof events === "function") {
 		S(then => {
-			const now = absorb(events)
+			const now = events()
 			eventHelper(el, then, "removeEventListener")
 			eventHelper(el, now, "addEventListener")
 			return now
@@ -148,7 +148,7 @@ function setStyle(el, style, hasOverrides) {
 			dynStyleProps = null
 		}
 		const {node} = S.makeComputationNode(() => {
-			const value = absorb(style)
+			const value = style()
 			el.style = skippable(value) ? "" : value
 		}, null, false, false)
 		if (node != null && hasOverrides) {
@@ -168,7 +168,7 @@ function setStyleProperty(el, prop, v, hasOverrides) {
 	}
 	if (typeof v === "function") {
 		const {node} = S.makeComputationNode(() => {
-			const value = absorb(v)
+			const value = v()
 			el.style[prop] = skippable(value) ? "" : value
 		}, null, false, false)
 		if (node != null && hasOverrides) {
@@ -188,7 +188,7 @@ function setStyleCustomProperty(el, prop, v, hasOverrides) {
 	}
 	if (typeof v === "function") {
 		const {node} = S.makeComputationNode(() => {
-			const value = absorb(v)
+			const value = v()
 			el.style.setProperty(prop, skippable(value) ? "" : value)
 		}, null, false, false)
 		if (node != null && hasOverrides) {

@@ -9,7 +9,7 @@ import {
 import {getErrorMessage} from "./errors.js"
 import {doc} from "./env.js"
 import {S} from "./S.js"
-import {absorb, hasOwn, skippable} from "./util.js"
+import {hasOwn, skippable} from "./util.js"
 // public API
 export {
 	boot,
@@ -48,7 +48,7 @@ function emitDynamic(cb) {
 		withRange(nr, () =>
 			withRef(DOMRef(parentNode, nextSibling), () => {
 				try {
-					emit(absorb(cb))
+					emit(cb())
 				} finally {
 					const empty = FirstInserted == null
 					const wasEmpty = lastNr != null && lastNr.firstNode === placeHolderComment

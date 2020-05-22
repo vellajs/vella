@@ -446,4 +446,23 @@ o.spec("updates", () => {
 			})
 		})
 	})
+	o.spec("nested Live zones", () => {
+		o("nested update leaves the parent alone", () => {
+			const signal = S.data(0)
+			const expected1 = matchDOM(e("div", {}, ["1"]))
+			const expected2 = matchDOM(e("div", {}, ["2"]))
+			let count = 0
+			const node = V("div", {}, () => {
+				count++;
+				return () => signal() + 1
+			})
+			o(node).satisfies(expected1)
+			o(count).equals(1)
+
+			signal(1)
+
+			o(node).satisfies(expected2)
+			o(count).equals(1)
+		})
+	})
 })

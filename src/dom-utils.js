@@ -97,10 +97,16 @@ function DOMRef(parent, nextSibling) {
 	return {parent, nextSibling}
 }
 
-function NodeRange({parentNode, parentNodeRange, removed} = {}) {
-	if (removed) console.trace("rendering a node that's been removed")
+const REMOVED = 1
+const HAS_NEXT_TICK_HOOK = 2
+
+function NodeRange({parentNode, parentNodeRange, state = 0} = {}) {
+	// eslint-disable-next-line no-bitwise
+	state &= REMOVED
+	// eslint-disable-next-line no-bitwise
+	if (state !== 0) console.trace("rendering a node that's been removed")
 	if (parentNode == null) parentNode = DOM.parent
-	const res = {parentNode, parentNodeRange, firstNode: null, lastNode: null, nodeCount: null, removed: false, removeHooks: null}
+	const res = {parentNode, parentNodeRange, firstNode: null, lastNode: null, nodeCount: null, state: 0, removeHooks: null}
 	// Object.defineProperties(res, {
 	// 	firstNode: {
 	// 		set(x){
@@ -117,8 +123,8 @@ function NodeRange({parentNode, parentNodeRange, removed} = {}) {
 	return res
 }
 
-function fromOld({parentNode, parentNodeRange, removed}) {
-	return NodeRange({parentNode, parentNodeRange, removed})
+function fromOld({parentNode, parentNodeRange, state}) {
+	return NodeRange({parentNode, parentNodeRange, state})
 }
 
 function fromParent(parentNodeRange) {
