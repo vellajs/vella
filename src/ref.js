@@ -1,8 +1,7 @@
 import {component} from "./constants.js"
-import {Range, Zone, forEachNode, fromParent, setRange, setZone, withRange} from "./dom-utils.js"
 import {getErrorMessage} from "./errors.js"
 import {doc} from "./env.js"
-import {emit} from "./render.js"
+import {Range, Zone, emit, forEachNode, fromParent, setRange, setZone, withRange} from "./render.js"
 import {S} from "./S.js"
 
 export {ref, postpone, setRemoveManager, processHookQueue}

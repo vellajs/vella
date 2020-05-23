@@ -2,10 +2,9 @@
 // /* global p */
 // import S from "s-js"
 import {component} from "./constants.js"
-import {DOM, DOMRef, Range, forEachNode, insert, remove, setRange, syncParents, withRef} from "./dom-utils.js"
 import {getErrorMessage} from "./errors.js"
 import {doc} from "./env.js"
-import {emitWithNodeRange} from "./render.js"
+import {DOM, DOMRef, Range, emitWithNodeRange, forEachNode, insert, remove, setRange, syncParents, withRef} from "./render.js"
 // TODO use V
 import {S} from "./S.js"
 

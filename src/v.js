@@ -1,8 +1,7 @@
 import {parseAndSetAttrs, setAttrs} from "./attrs.js"
 import {component} from "./constants.js"
-import {DOMRef, withRef, withoutRange} from "./dom-utils.js"
 import {doc, tagCache} from "./env.js"
-import {emit} from "./render.js"
+import {DOMRef, emit, withRef, withoutRange} from "./render.js"
 import {getProto, objProto, skippable} from "./util.js"
 
 export {MATH, SVG, V}
