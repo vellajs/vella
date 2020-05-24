@@ -1,6 +1,6 @@
 import o from "ospec"
 
-import {setWindow as setVellaWindow} from "../../src/env.js"
+import {setWindow as setVellaWindow} from "../../lib/env.js"
 import {S, boot, v} from "../../pieces.js"
 import {matchError} from "../../test-util/matchError.js"
 import {e, matchDOM, setWindow as setMDWindow} from "../../test-util/matchDOM.js"
@@ -30,7 +30,7 @@ o.spec("boot", () => {
 		o(() => boot({})).satisfies(A002)
 		// fails because `node` doesn't have a parent
 		o(() => boot({parentNode: node})).satisfies(A002)
-		o(() => boot(() => {})).satisfies(A002)
+		o(() => boot(() => {/**/})).satisfies(A002)
 
 		o(() => boot(node, null)).satisfies(A003)
 		o(() => boot(node, undefined)).satisfies(A003)
@@ -41,7 +41,7 @@ o.spec("boot", () => {
 		o(() => boot(node, "")).satisfies(A003)
 		o(() => boot(node, {})).satisfies(A003)
 		o(() => boot(node, createEl("div"))).satisfies(A003)
-		o(() => boot(node, v(() => {}))).satisfies(A003)
+		o(() => boot(node, v(() => {/**/}))).satisfies(A003)
 	})
 	o("inserts DOM in a parent", () => {
 		const unboot = boot(node, () => "a")

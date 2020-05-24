@@ -6,7 +6,8 @@ import {getErrorMessage} from "./errors.js"
 import {doc} from "./env.js"
 import {DOM, DOMRef, Range, emitWithNodeRange, forEachNode, insert, remove, setRange, syncParents, withRef} from "./render.js"
 // TODO use V
-import {S} from "./S.js"
+import {S, DataSignal} from "./S.js"
+import { Emitable } from "./types.js"
 
 //hooks
 
@@ -27,19 +28,34 @@ void ["beforeUpdating", "afterUpdated", "rendered", "reflowed", "updating", "upd
 	}
 })
 
-function normalize(renderer) {
+function normalize<K>(renderer: Renderer<K> | Renderer<K>["render"]) {
 	if (renderer == null) throw new TypeError(getErrorMessage("A006"))
-	const type = typeof renderer
-	if (type === "function") return {render: renderer, hooks: null}
+	if (typeof renderer === "function") return {render: renderer, hooks: null}
 
 	return renderer
 }
 
-export function keyed(keys, hooks) {
+export function keyed<K>(keys: DataSignal<K[]>, hooks: Renderer<K> | Renderer<K>["render"]) {
 	return component(Keyed, keys, normalize(hooks))
 }
 
-function Keyed(keys, {hooks, render}) {
+interface Renderer <K> {
+	render(key: K): Emitable,
+	hooks?(life:any): void
+}
+interface KeyedHooks {
+	beforeUpdating(node: Node):void
+	afterUpdated(node: Node):void
+	created(node: Node):void
+	updating(node: Node):void
+	updated(node: Node):void
+	removing(node: Node):void
+}
+interface PrivateRenderer <K>{
+	render(key: K): Emitable,
+	hooks: KeyedHooks | ((life:any) => void) | undefined
+}
+function Keyed<K>(keys: DataSignal<K[]>, {hooks, render}: PrivateRenderer<K>) {
 	if (typeof hooks === "function") {
 		globalHooks = Hooks()
 		hooks({...life})
@@ -50,7 +66,7 @@ function Keyed(keys, {hooks, render}) {
 	const placeHolderComment = doc.createComment("")
 	const hasIndices = render.length > 1
   
-	let final
+	let final: boolean
   
 	S(last => {
 		final = false
@@ -66,9 +82,9 @@ function Keyed(keys, {hooks, render}) {
 			const nextSibling = last.refs.length === 0
 				? placeHolderComment
 				: last.refs[last.refs.length - 1].range.lastNode.nextSibling
-			if (hooks != null && hooks.beforeUpdating != null) hooks.beforeUpdating.forEach(cb => {try {cb()}finally{/**/}})
+			// if (hooks != null && hooks.beforeUpdating != null) hooks.beforeUpdating.forEach(cb => {try {cb()}finally{/**/}})
 			last = update(keys(), last, render, hooks, parentDOMRange, parentNode, nextSibling, placeHolderComment, hasIndices)
-			if (hooks != null && hooks.afterUpdated != null) hooks.afterUpdated.forEach(cb => {try {cb()}finally{/**/}})
+			// if (hooks != null && hooks.afterUpdated != null) hooks.afterUpdated.forEach(cb => {try {cb()}finally{/**/}})
 			return last
 		}
 	}, null)
@@ -175,7 +191,7 @@ export function update(
 			syncParents(parentNodeRange, "lastNode", placeHolderComment, refs[refs.length - 1].range.lastNode)
 		}
 	} else if (keys.length === 0) {
-		oldRefs.forEach((ref, i) => remover(ref, old[i]))
+		oldRefs.forEach((ref, i) => remover(ref))  //TODO: , old[i]))
 		withRef(DOMRef(parentNode, nextSibling), () => {
 			insert(placeHolderComment)
 		})

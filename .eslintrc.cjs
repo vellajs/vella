@@ -1,16 +1,23 @@
 module.exports = {
-    "env": {
+    env: {
         "browser": true,
         "commonjs": true,
         "es6": true,
         "node": true
 	},
-    "extends": "eslint:recommended",
-    "parserOptions": {
+    extends: [
+        'eslint:recommended',
+        'plugin:@typescript-eslint/recommended',
+      ],
+    parser: '@typescript-eslint/parser',
+    parserOptions: {
         "ecmaVersion": 2020,
         sourceType: "module",
     },
-    "rules": {
+    plugins: [
+        '@typescript-eslint',
+      ],
+      "rules": {
         "accessor-pairs": "error",
         "array-bracket-spacing": [
             "error",
@@ -229,5 +236,5 @@ module.exports = {
         "yield-star-spacing": "error",
         "yoda": "off"
     },
-    "root": true
+    root: true
 };

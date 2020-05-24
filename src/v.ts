@@ -33,10 +33,10 @@ function getOrMakeElement(selector, ns) {
 
 const isPOJO = x => !skippable(x) && getProto(x) === objProto
 
-function svg(...args) {
+function svg(...args): Element {
 	NS = "http://www.w3.org/2000/svg"
 	try {
-		return v(...args)
+		return v(...(args as [any, any, ...any[]]))
 	} finally {
 		NS = ""
 	}
@@ -45,7 +45,7 @@ function svg(...args) {
 function math(...args) {
 	NS = "http://www.w3.org/1998/Math/MathML"
 	try {
-		return v(...args)
+		return v(...(args as [any, any, ...any[]]))
 	} finally {
 		NS = ""
 	}
@@ -83,7 +83,7 @@ function v(tagName, attrs, ...children) {
 function SVG(...args) {
 	NS = "http://www.w3.org/2000/svg"
 	try {
-		return V(...args)
+		return V(...(args as [any, any, any]))
 	} finally {
 		NS = ""
 	}
@@ -92,7 +92,7 @@ function SVG(...args) {
 function MATH(...args) {
 	NS = "http://www.w3.org/1998/Math/MathML"
 	try {
-		return V(...args)
+		return V(...(args as [any, any, any]))
 	} finally {
 		NS = ""
 	}

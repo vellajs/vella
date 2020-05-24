@@ -37,7 +37,7 @@ const normalOutput =
 
 const minifiedOutput =
 	bundle([
-		alias({find: "./src/errors.js", replacement: "./src/errorsProduction.js"})
+		alias({entries: [{find: "./src/errors.js", replacement: "./src/errorsProduction.js"}]})
 	])
 		.then(x => x.generate({
 			plugins: [

@@ -5,7 +5,7 @@ export PATH=./node_modules/.bin:$PATH
 
 function build(){
     rm -fr dist || true
-    node scripts/build.cjs
+    compile && node scripts/build.cjs
 }
 
 function build-website(){
@@ -50,11 +50,15 @@ function lint(){
 }
 
 function test(){
-    ospec
+    compile && ospec
 }
 
 function cover() {
-    c8 -r lcov ./node_modules/.bin/ospec
+    compile && c8 -r lcov ./node_modules/.bin/ospec
+}
+
+function compile() {
+    tsc --build tsconfig.json
 }
 
 eval "$@"

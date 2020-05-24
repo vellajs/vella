@@ -1,0 +1,1 @@
+This folder contains `.js`, `.d.ts` and `.js.map` files that are generated at compile time, distributed in the package, but not comited to git. See `src/*.ts` for their counterparts.

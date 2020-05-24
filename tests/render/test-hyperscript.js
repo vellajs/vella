@@ -1,7 +1,7 @@
 import o from "ospec"
-import {setWindow as setVellaWindow} from "../../src/env.js"
+import {setWindow as setVellaWindow} from "../../lib/env.js"
 import {S, V, v} from "../../pieces.js"
-import {cacheDelay} from "../../src/v.js"
+import {cacheDelay} from "../../lib/v.js"
 import {e, matchDOM, setWindow as setMDWindow} from "../../test-util/matchDOM.js"
 import {refreshWindow, win} from "../test-setup.js"
 
@@ -673,6 +673,7 @@ o.spec("hyperscript", () => {
 						o(attrs).deepEquals({a: "b"})
 					})
 					o("non-nullish attr takes precedence over selector", function() {
+						o(v("[a=b]", {a: "c"}).getAttribute("a")).equals("c")
 					})
 					o("null attr takes precedence over selector", function() {
 						o(v("[a=b]", {a: null}).getAttribute("a")).equals(null)
@@ -759,7 +760,7 @@ o.spec("hyperscript", () => {
 							o(spy.callCount).equals(0)
 						})
 						o("works when it returns nothing; default params", () => {
-							const spy = o.spy(() => {})
+							const spy = o.spy(() => {/**/})
 							const actual = v("div", {}, ["a", v(spy), "z"])
 							const expected = e("div", {}, ["a", "z"])
 	

@@ -1,4 +1,4 @@
-export function getErrorMessage(id) {
+export function getErrorMessage(id: keyof typeof messages) {
 	return `[${id}]: ${messages[id].message}`
 }
 

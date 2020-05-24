@@ -1,6 +1,6 @@
 import o from "ospec"
 
-import {setWindow as setVellaWindow} from "../../src/env.js"
+import {setWindow as setVellaWindow} from "../../lib/env.js"
 import {S, ref, v} from "../../pieces.js"
 // import {matchError} from "../../test-util/matchError.js"
 import {e, matchDOM, setWindow as setMDWindow} from "../../test-util/matchDOM.js"
@@ -149,7 +149,7 @@ o.spec("ref", () => {
 			const expectedNode = matchDOM(e("div", {}, [e.comment()]))
 			const executor = o.spy(life => {
 				life.asap(asap)
-				return () => {}
+				return () => {/**/}
 			})
 			const actual = S.root(() => v("div", {}, ref(executor)))
 	
@@ -374,7 +374,7 @@ o.spec("ref", () => {
 				const expectedNode = matchDOM(e("div", {}, [e.comment()]))
 				const executor = o.spy(life => {
 					life.rendered(rendered)
-					return () => {}
+					return () => {/**/}
 				})
 				const actual = S.root(() => v("div", {}, ref(executor)))
 		
@@ -455,7 +455,7 @@ o.spec("ref", () => {
 				const expectedNode = matchDOM(e("div", {}, [e.comment()]))
 				const executor = o.spy(life => {
 					life.rendered(rendered)
-					return () => {}
+					return () => {/**/}
 				})
 				const actual = S.root(() => v("div", {}, ref(executor)))
 		
@@ -683,7 +683,7 @@ o.spec("ref", () => {
 				const expectedNode = matchDOM(e("div", {}, [e.comment()]))
 				const executor = o.spy(life => {
 					life.reflowed(reflowed)
-					return () => {}
+					return () => {/**/}
 				})
 				const actual = S.root(() => v("div", {}, ref(executor)))
 		
@@ -764,7 +764,7 @@ o.spec("ref", () => {
 				const expectedNode = matchDOM(e("div", {}, [e.comment()]))
 				const executor = o.spy(life => {
 					life.reflowed(reflowed)
-					return () => {}
+					return () => {/**/}
 				})
 				const actual = S.root(() => v("div", {}, ref(executor)))
 		
@@ -805,7 +805,7 @@ o.spec("ref", () => {
 				const expectedNode = matchDOM(e("div", {}, ["a", "b"]))
 				const expectedChildA = matchDOM("a")
 				const expectedChildB = matchDOM("b")
-				// eslint-disable-next-line no-unused-vars
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
 				const reflowed = o.spy((node, metadata) => {
 					o(clientWidth.callCount).equals(1)
 
@@ -843,7 +843,7 @@ o.spec("ref", () => {
 				const expectedChildB = matchDOM("b")
 				const expectedChildC = matchDOM("c")
 				const expectedChildD = matchDOM("d")
-				// eslint-disable-next-line no-unused-vars
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
 				const reflowed = o.spy((node, metadata) => {
 					o(clientWidth.callCount).equals(1)
 

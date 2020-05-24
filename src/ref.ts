@@ -4,6 +4,8 @@ import {doc} from "./env.js"
 import {Range, Zone, emit, forEachNode, fromParent, setRange, setZone, withRange} from "./render.js"
 import {S} from "./S.js"
 
+import {FragmentIndex} from "./types.js"
+
 export {ref, postpone, setRemoveManager, processHookQueue}
 
 /*
@@ -13,14 +15,16 @@ export {ref, postpone, setRemoveManager, processHookQueue}
 */
 
 let canCallHooks = 0
-let asapQueue
+let asapQueue: Effector[]
 
-function asap(cb) {
+type Effector = () => void | ((node: Node) => void) | ((node:Node, fi: FragmentIndex) => void)
+
+function asap(cb:Effector) {
 	if (canCallHooks !== 4) throw new Error(getErrorMessage("A001"))
 	asapQueue.push(cb)
 }
 
-function rendered(cb) {
+function rendered(cb: Effector) {
 	if (canCallHooks < 3) throw new Error(getErrorMessage("A001"))
 	postpone("rendered", cb, Range)
 }

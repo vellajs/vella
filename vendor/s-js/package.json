@@ -1,0 +1,65 @@
+{
+  "_from": "github:adamhaile/S",
+  "_id": "s-js@0.4.9",
+  "_inBundle": false,
+  "_integrity": "",
+  "_location": "/s-js",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "git",
+    "raw": "s-js@github:adamhaile/S",
+    "name": "s-js",
+    "escapedName": "s-js",
+    "rawSpec": "github:adamhaile/S",
+    "saveSpec": "github:adamhaile/S",
+    "fetchSpec": null,
+    "gitCommittish": null
+  },
+  "_requiredBy": [
+    "/"
+  ],
+  "_resolved": "github:adamhaile/S#634e5fb5c1a6726a8eaf0ade1d13a719effea3ed",
+  "_spec": "s-js@github:adamhaile/S",
+  "_where": "/Users/pygy/dev/vella",
+  "author": {
+    "name": "Adam Haile"
+  },
+  "bugs": {
+    "url": "https://github.com/adamhaile/S/issues"
+  },
+  "bundleDependencies": false,
+  "dependencies": {},
+  "deprecated": false,
+  "description": "S.js - simple, clean, fast reactive programming in Javascript",
+  "devDependencies": {
+    "jasmine": "^3.4.0",
+    "karma": "^4.1.0",
+    "karma-chrome-launcher": "^2.2.0",
+    "karma-jasmine": "^2.0.1",
+    "rollup": "^1.16.2",
+    "typescript": "^3.5.2"
+  },
+  "homepage": "https://github.com/adamhaile/S#readme",
+  "keywords": [
+    "reactive",
+    "javascript",
+    "synchronous",
+    "signal",
+    "dependency"
+  ],
+  "license": "MIT",
+  "main": "dist/S.js",
+  "module": "dist/es/S.js",
+  "name": "s-js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adamhaile/S.git"
+  },
+  "scripts": {
+    "bench": "node --allow-natives-syntax bench/bench.js",
+    "build": "tsc && rollup dist/es/S.js -f \"umd\" -n \"S\" -o dist/S.js && rollup dist/es/withsubclocks.js -f \"umd\" -n \"S\" -o dist/withsubclocks.js",
+    "test": "jasmine"
+  },
+  "types": "dist/es/S.d.ts",
+  "version": "0.4.9"
+}

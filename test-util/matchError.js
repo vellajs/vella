@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 function str(x) {
 	return JSON.stringify(x)
 }

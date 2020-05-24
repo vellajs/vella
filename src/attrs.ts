@@ -36,7 +36,7 @@ function setAttrsObject(el, attrs, ns, tagName, hasOverrides) {
 	for (const k in attrs) if (hasOwn.call(attrs, k)) {
 		if (k === "on") setEvents(el, attrs[k])
 		else if (k === "class" || k === "className") setClass(el, attrs[k])
-		else if (k === "style" && typeof value !== "string") setStyle(el, attrs[k], hasOverrides)
+		else if (k === "style") setStyle(el, attrs[k], hasOverrides)
 		else if (k === "$props") Object.keys(attrs.$props).forEach(k => setAttr(el, k, attrs.$props[k], hasOverrides))
 		else if (k === "$attrs") Object.keys(attrs.$attrs).forEach(k => setProp(el, k, attrs.$attrs[k], hasOverrides))
 		else if (ns === "" && !avoidAsProp(k) && k in el) setProp(el, k, attrs[k], hasOverrides)
@@ -144,7 +144,7 @@ function setStyle(el, style, hasOverrides) {
 		}
 	} else if (type === "function") {
 		if (dynStyleProps != null) {
-			for (const dsp in dynStyleProps) if (hasOwn.call(dynStyleProps, dsp)) S.dispose(dynStyleProps[dsp])
+			for (const dsp in dynStyleProps) if (hasOwn.call(dynStyleProps, dsp)) S.disposeNode(dynStyleProps[dsp])
 			dynStyleProps = null
 		}
 		const {node} = S.makeComputationNode(() => {
