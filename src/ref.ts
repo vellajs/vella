@@ -1,12 +1,10 @@
-import {component} from "./constants.js"
 import {getErrorMessage} from "./errors.js"
 import {doc} from "./env.js"
-import {Range, Zone, emit, forEachNode, fromParent, setRange, setZone, withRange} from "./render.js"
+import {Emitable, NonNullNodeRange, Range, Zone, component, emit, forEachNode, fromParent, setRange, setZone, withRange} from "./render.js"
 import {S} from "./S.js"
+import {Nullish} from "./types.js"
 
-import {FragmentIndex} from "./types.js"
-
-export {ref, postpone, setRemoveManager, processHookQueue}
+export {FragmentIndex, RemoveHooks, ref, postpone, setRemoveManager, processHookQueue}
 
 /*
 - cleanup, can be called from both computations and hooks, except from removing
@@ -15,46 +13,68 @@ export {ref, postpone, setRemoveManager, processHookQueue}
 */
 
 let canCallHooks = 0
-let asapQueue: Effector[]
+let asapQueue: Effector<void>[] | Nullish
 
-type Effector = () => void | ((node: Node) => void) | ((node:Node, fi: FragmentIndex) => void)
+interface FragmentIndex {
+	fragmentIndex: number,
+	lastFragmentIndex: number
+}
 
-function asap(cb:Effector) {
+type Effector<T> = (() => T) | ((node: Node) => T) | ((node:Node, fi: FragmentIndex) => T)
+
+
+function asap(cb: Effector<void>) {
 	if (canCallHooks !== 4) throw new Error(getErrorMessage("A001"))
-	asapQueue.push(cb)
+	// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+	asapQueue!.push(cb)
 }
 
-function rendered(cb: Effector) {
+function rendered(cb: Effector<void>) {
 	if (canCallHooks < 3) throw new Error(getErrorMessage("A001"))
-	postpone("rendered", cb, Range)
+	postpone("rendered", cb, Range as NonNullNodeRange)
 }
 
-function reflowed(cb) {
+function reflowed(cb: Effector<void>) {
 	if (canCallHooks < 2) throw new Error(getErrorMessage("A001"))
-	postpone("reflowed", cb, Range)
+	postpone("reflowed", cb, Range as NonNullNodeRange)
 }
 
 const zoneRemoveMap = new WeakMap()
 
-const removeHooks = () => ({manager: null, hooks: []})
+const removeHooks : () => ({
+	manager: typeof Promise.all | Nullish,
+	hooks: ((x: Array<Promise<unknown>| Nullish>) => void)[]
+}) = () => ({
+	manager: null,
+	hooks: []
+})
 
-function removing(cb) {
+type RemoveHooks = ReturnType<typeof removeHooks>
+
+function removing(cb: Effector<Promise<unknown> | Nullish>) {
 	if (Zone.removeHooks == null) Zone.removeHooks = removeHooks()
 	const nr = Range
 	Zone.removeHooks.hooks.push(cb.length === 0
-		? result => result.push(cb())
-		: result => forEachNode(nr, cb, false, result)
+		? result => result.push((<()=>(Promise<unknown> | Nullish)>cb)())
+		: result => forEachNode(nr as NonNullNodeRange, cb, false, result)
 	)
 }
 
-function setRemoveManager(cb) {
+function setRemoveManager(cb: typeof Promise.all) {
 	// TODO? type check?
 	if (Zone.removeHooks == null) Zone.removeHooks = removeHooks()
 	if (Zone.removeHooks.manager != null) throw new Error(getErrorMessage("A004"))
 	Zone.removeHooks.manager = cb
 }
 
-function Ref(executor) {
+type Life = (life: {
+	asap: (cb: Effector<void>) => void,
+	rendered: (cb: Effector<void>) => void,
+	reflowed: (cb: Effector<void>) => void,
+	removing: (cb: Effector<Nullish | Promise<unknown>>) => void
+}) => Emitable
+
+function Ref(cb: Life) {
 	const nr = fromParent(Range)
 	zoneRemoveMap.set(nr, Zone)
 	asapQueue = []
@@ -62,7 +82,7 @@ function Ref(executor) {
 		canCallHooks = 4
 		let res
 		try{
-			res = executor({asap, rendered, reflowed, removing})
+			res = cb({asap, rendered, reflowed, removing})
 		} finally {
 			canCallHooks = 0
 		}
@@ -70,32 +90,45 @@ function Ref(executor) {
 	})
 	S.freeze(() => {
 		canCallHooks = 3
-		asapQueue.forEach(cb => forEachNode(nr, cb))
+		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+		asapQueue!.forEach(cb => forEachNode(nr as NonNullNodeRange, cb))
 		canCallHooks = 0
 	})
 	asapQueue = null
 }
 
-function ref(executor) {
-	return component(Ref, executor)
+
+function ref(cb: Life) {
+	return component(Ref, cb)
 }
 
 
-function Scheduled() {
-	return {removing:[], rendered: [], reflowed:[]}
+interface Scheduled {
+	rendered: (Effector<void> | NonNullNodeRange)[]
+	reflowed: (Effector<void> | NonNullNodeRange)[]
+	removing: (Effector<Promise<unknown>|Nullish> | NonNullNodeRange)[]
 }
 
-let scheduled
-function postpone(what, fn, nr) {
+function Scheduled(): Scheduled{
+	return {rendered: [], reflowed:[], removing: []}
+}
+
+let scheduled: Scheduled | Nullish
+function postpone(what: "rendered"|"reflowed", fn: Effector<void>, nr: NonNullNodeRange): void
+function postpone(what: "removing", fn: Effector<Promise<unknown>|Nullish>, nr: NonNullNodeRange): void
+
+function postpone<T extends keyof Scheduled>(what: T, fn: Effector<void>|Effector<Promise<unknown>|Nullish>, nr: NonNullNodeRange): void {
 	if (scheduled == null) {
 		scheduled = Scheduled()
 		Promise.resolve().then(processDelayedCreation)
 	}
-	scheduled[what].push(fn, nr)
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	scheduled[what].push(fn as any, nr)
 }
 
 function processDelayedCreation(){
-	const {rendered, reflowed} = scheduled
+	// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+	const {rendered, reflowed} = scheduled!
 	canCallHooks = 2
 
 	processHookQueue(rendered)
@@ -111,25 +144,27 @@ function processDelayedCreation(){
 	scheduled = null
 }
 
-function processHookQueue(queue) {
+function processHookQueue(
+	queue : (Effector<void> | NonNullNodeRange)[]
+) {
 	for (let i = 0; i < queue.length; i += 2) {
-		const fn = queue[i]
-		const nr = queue[i+1]
-		if (fn.length === 0) {
+		const cb = queue[i] as Effector<void>
+		const nr = (queue[i+1] as NonNullNodeRange)
+		if (cb.length === 0) {
 			const previousZone = Zone
 			setZone(zoneRemoveMap.get(nr))
 			try {
-				fn()
+				(<()=>void>cb)()
 			} finally {
 				setZone(previousZone)
 			}
 		} else {
 			const previousRange = Range
 			const previousZone =Zone
-			setRange(nr)
+			setRange(nr as NonNullNodeRange)
 			setZone(zoneRemoveMap.get(nr))
 			try {
-				forEachNode(nr, fn)
+				forEachNode(nr, cb)
 			} finally {
 				setRange(previousRange)
 				setZone(previousZone)

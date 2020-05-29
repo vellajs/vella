@@ -1,19 +1,22 @@
+/* eslint-disable @typescript-eslint/ban-types */
 /* eslint-disable arrow-parens */
 // /* global p */
 // import S from "s-js"
-import {component} from "./constants.js"
 import {getErrorMessage} from "./errors.js"
 import {doc} from "./env.js"
-import {DOM, DOMRef, Range, emitWithNodeRange, forEachNode, insert, remove, setRange, syncParents, withRef} from "./render.js"
+import {DOM, DOMRef, Emitable, Range, component, emitWithNodeRange, forEachNode, insert, remove, setRange, syncParents, withRef} from "./render.js"
 // TODO use V
-import {S, DataSignal} from "./S.js"
-import { Emitable } from "./types.js"
+import {DataSignal, S} from "./S.js"
 
 //hooks
+type HookList = null | Function[]
+interface Hooks {
+	beforeUpdating: HookList, afterUpdated: HookList, rendered: HookList, reflowed: HookList, updating: HookList, updated: HookList, removing: HookList
+}
 
-let globalHooks
+let globalHooks: Hooks
 
-function Hooks(){
+function Hooks(): Hooks {
 	return {
 		beforeUpdating:null, afterUpdated: null, rendered: null, reflowed: null, updating: null, updated: null, removing: null
 	}
@@ -41,19 +44,13 @@ export function keyed<K>(keys: DataSignal<K[]>, hooks: Renderer<K> | Renderer<K>
 
 interface Renderer <K> {
 	render(key: K): Emitable,
+	// TODO: better type for hooks
 	hooks?(life:any): void
 }
-interface KeyedHooks {
-	beforeUpdating(node: Node):void
-	afterUpdated(node: Node):void
-	created(node: Node):void
-	updating(node: Node):void
-	updated(node: Node):void
-	removing(node: Node):void
-}
+
 interface PrivateRenderer <K>{
 	render(key: K): Emitable,
-	hooks: KeyedHooks | ((life:any) => void) | undefined
+	hooks?: Hooks | ((life:any) => void) | undefined | null
 }
 function Keyed<K>(keys: DataSignal<K[]>, {hooks, render}: PrivateRenderer<K>) {
 	if (typeof hooks === "function") {

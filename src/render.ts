@@ -1,16 +1,22 @@
-import {componentEarmark} from "./constants.js"
+/* eslint-disable @typescript-eslint/ban-types */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {getErrorMessage} from "./errors.js"
 import {doc} from "./env.js"
 import {S} from "./S.js"
-import {Emitable, FragmentIndex} from "./types"
-import {hasOwn, skippable} from "./util.js"
+import type {FragmentIndex, RemoveHooks} from "./ref.js"
+import {Skippable, hasOwn, skippable} from "./util.js"
+import type {Nullish} from "./types.js"
 // public API
 export {
 	boot,
 }
 // private exports
 export {
+	Emitable, Component, ComponentResult, NonNullNodeRange,
+
 	emit, emitWithNodeRange,
+
+	component,
 
 	withoutRange,
 	Range, Zone, forEachNode, fromParent, setRange, setZone, withRange,
@@ -19,25 +25,51 @@ export {
 }
 
 
-interface DOM {parent: Element, nextSibling: Node | null}
+// Components
+// ==========
+
+const componentEarmark = Symbol("component earmark")
+
+type Component = (attrs?: {[x: string]: any} | null, children?: Emitable) => Emitable
+
+type ComponentResult = (() => Emitable) & {[componentEarmark]: true}
+
+function component<T extends unknown[]>(f: (this: unknown, ...args: T)=>Emitable, ...args: T): ComponentResult {
+	const res = (f as any).bind(null, ...args as any[])
+	res[componentEarmark] = true
+	return res
+}
+
+// DOM
+// ===
+
+interface DOM {parent: Element, nextSibling: Node | Nullish}
 interface NodeRange {
-	parentNodeRange: NodeRange | undefined,
+	parentNodeRange: NodeRange | Nullish,
 	parentNode: Element,
-	firstNode: Node | null,
-	lastNode: Node | null,
+	firstNode: Node | Nullish,
+	lastNode: Node | Nullish,
 	nodeCount: number,
-	removeHooks: {hooks: Function[], manager: Function | null} | null
+	removeHooks: RemoveHooks | Nullish
+}
+interface NonNullNodeRange {
+	parentNodeRange: NodeRange | Nullish,
+	parentNode: Element,
+	firstNode: Node,
+	lastNode: Node,
+	nodeCount: number,
+	removeHooks: RemoveHooks | null
 }
 
 let DOM: DOM
-let Range: NodeRange | null = null
+let Range: NodeRange | Nullish
 let Zone: NodeRange
 
-let NodeCount: number = 0
-let FirstInserted: Node | null = null
-let LastInserted: Node | null = null
+let NodeCount = 0
+let FirstInserted: Node | Nullish
+let LastInserted: Node | Nullish
 
-const setRange = (nr: NodeRange) => (Range = nr)
+const setRange = (nr: NodeRange | Nullish) => (Range = nr)
 const setZone = (zn: NodeRange) => (Zone = zn)
 
 function withoutRange(cb: () => any) {
@@ -56,7 +88,6 @@ function withoutRange(cb: () => any) {
 
 function withRange(nr: NodeRange, cb: () => any) {
 	if (nr == null) return withoutRange(cb)
-	// console.trace("wrfi")
 	const range = Range
 	const firstInserted = FirstInserted
 	const nodeCount = NodeCount
@@ -88,41 +119,46 @@ function withRef<T>(ref: DOM, cb:() => T): T {
 
 // helpers
 
-function forEachNode<T>(nr: NodeRange, cb: (x: Node, fi?: FragmentIndex) => T, includingComments:boolean = false, result?:T[]) {
+function forEachNode<T>(
+	nr: NonNullNodeRange,
+	cb: ((x: Node, fi: FragmentIndex) => T) | ((x: Node) => T),
+	includingComments = false,
+	result?: T[]
+) {
 	const needsMetadata = cb.length > 1
 	const lastFragmentIndex = nr.nodeCount - 1
 	if (lastFragmentIndex === -1) return
 	S.freeze(() => {
 		const {firstNode, lastNode} = nr
-		const boundary = lastNode!.nextSibling
-		let node = firstNode!
+		const boundary = lastNode.nextSibling
+		let node = firstNode
 		let fragmentIndex = 0
 		do {
 			const next = node.nextSibling
 			if (includingComments || node.nodeType !== 8) try {
 				const x = needsMetadata
 					? cb(node, {fragmentIndex, lastFragmentIndex})
-					: cb(node)
+					: (cb as (x: Node) => T)(node)
 				if (result != null) result.push(x)
 			} finally {/**/}
 			fragmentIndex++
-			node = next!
+			node = next as Node
 		} while (node !== boundary)
 	})
 }
 
 // constructors
 
-function DOMRef(parent: Element, nextSibling: Node | null) {
+function DOMRef(parent: Element, nextSibling: Node | Nullish) {
 	return {parent, nextSibling}
 }
 
 function NodeRange({
-		parentNode,
-		parentNodeRange
-	}: {
+	parentNode,
+	parentNodeRange
+}: {
 		parentNode?: Element,
-		parentNodeRange?: NodeRange
+		parentNodeRange?: NodeRange | Nullish
 	} = {}
 ): NodeRange {
 	if (parentNode == null) parentNode = DOM.parent
@@ -154,9 +190,9 @@ function fromOld({parentNode, parentNodeRange}: NodeRange) {
 	return NodeRange({parentNode, parentNodeRange})
 }
 
-function fromParent(parentNodeRange: NodeRange | null) {
+function fromParent(parentNodeRange: NodeRange | Nullish) {
 	const {parentNode} = parentNodeRange || {}
-	return NodeRange({parentNode, parentNodeRange: parentNodeRange as any})
+	return NodeRange({parentNode, parentNodeRange: parentNodeRange as NodeRange})
 }
 
 function insert(node: Node) {
@@ -169,25 +205,30 @@ function insert(node: Node) {
 	}
 }
 
-function remove(nr: NodeRange) {
-	const {parentNode, parentNodeRange} = nr
+function remove(nr: NonNullNodeRange) {
+	const {parentNode} = nr
 	// TODO: revisit taking the placeholder comment into account
 	if (nr.firstNode != nr.lastNode && parentNode.firstChild === nr.firstNode && parentNode.lastChild === nr.lastNode) {
 		parentNode.textContent = ""
 		return
 	}
-	forEachNode(nr, node => {
+	// TODO: check why node is implicitly "any"
+	forEachNode(nr, (node: Node) => {
 		if (node.parentNode != null) parentNode.removeChild(node)
 	}, true)
 }
 
-function syncParents(nr: NodeRange | undefined, key: "firstNode" | "lastNode", old: Node, current: Node) {
+function syncParents(nr: NodeRange | Nullish, key: "firstNode" | "lastNode", old: Node, current: Node) {
 	if (nr != null && nr[key] === old) {
 		nr[key] = current
 		syncParents(nr.parentNodeRange, key, old, current)
 	}
 }
 
+// Core
+// ====
+
+type Emitable = Skippable | Node | string | number | (() => Emitable) | Emitable[]
 
 function emit(node: Emitable) {
 	if (skippable(node)) return
@@ -206,8 +247,8 @@ function emit(node: Emitable) {
 //stubs
 
 function emitDynamic(cb: () => Emitable) {
-	const lastNodes = new Set()
-	let lastNr: NodeRange | undefined, placeHolderComment : Comment | undefined, remover: null | Function
+	const lastNodes: Set<Node> = new Set()
+	let lastNr: NonNullNodeRange | undefined, placeHolderComment : Comment | undefined, remover: () => void | undefined
 	S(() => {
 		// Not sure this is needed given how S.js works.
 		// It would be nice to let users set a recursion limit.
@@ -229,7 +270,7 @@ function emitDynamic(cb: () => Emitable) {
 					}
 
 					// sync parent on redraw. LastNode is sinced when `remove` happens (either sync or async)
-					if (lastNr != null) syncParents(nr.parentNodeRange, "firstNode", lastNr.firstNode!, FirstInserted!)
+					if (lastNr != null) syncParents(nr.parentNodeRange, "firstNode", lastNr.firstNode, FirstInserted as Node)
 
 					// Node removal can be racy if there are several concurrent `removing` phases that overlap, and
 					// if an earlier `removing` phase resolves after one that started later.
@@ -237,7 +278,7 @@ function emitDynamic(cb: () => Emitable) {
 					// Since on update, the new nodes are inserted before the old ones, we can keep a stack of `lastNodes`
 					// on insertion, then, on removal, remove the one of the NodeRange that is being removed, and sync
 					// the parent with the oldest remaining `lastNode`.
-					lastNodes.add(LastInserted)
+					lastNodes.add(LastInserted as Node)
 
 					if (remover != null && !(empty && wasEmpty)) remover()
 
@@ -247,21 +288,21 @@ function emitDynamic(cb: () => Emitable) {
 								const results: Promise<any>[] = []
 								nr.removeHooks.hooks.forEach(x => x(results))
 								void (nr.removeHooks.manager || Promise.all.bind(Promise))(results).finally(() => {
-									lastNodes.delete(nr.lastNode)
-									const lastNode = lastNodes[Symbol.iterator]().next().value
-									remove(nr)
-									syncParents(nr.parentNodeRange, "lastNode", nr.lastNode!, lastNode)
+									lastNodes.delete(nr.lastNode as Node)
+									const lastNode: Node = lastNodes[Symbol.iterator]().next().value
+									remove(nr as NonNullNodeRange)
+									syncParents(nr.parentNodeRange, "lastNode", nr.lastNode as Node, lastNode)
 								})
 							} else {
-								lastNodes.delete(nr.lastNode)
+								lastNodes.delete(nr.lastNode as Node)
 								const lastNode = lastNodes[Symbol.iterator]().next().value
 
-								remove(nr)
-								syncParents(nr.parentNodeRange, "lastNode", nr.lastNode!, lastNode)
+								remove(nr as NonNullNodeRange)
+								syncParents(nr.parentNodeRange, "lastNode", nr.lastNode as Node, lastNode)
 							}
 						}
 					})
-					lastNr = nr
+					lastNr = nr as NonNullNodeRange
 				}
 			})
 		)
@@ -271,7 +312,7 @@ function emitDynamic(cb: () => Emitable) {
 function emitWithNodeRange (node: Emitable) {
 	const dr = fromParent(Range)
 	withRange(dr, () => {emit(node)})
-	return dr
+	return dr as NonNullNodeRange
 }
 
 
@@ -280,7 +321,7 @@ type Root = Element | NSOption
 
 function boot(parentNode: Root, main : () => Emitable) {
 	if (parentNode == null) throw new TypeError(getErrorMessage("A002"))
-	let nextSibling: Node | null = null
+	let nextSibling: Node | Nullish
 	if (Object.getPrototypeOf(parentNode) === Object.prototype && parentNode.nextSibling != null) {
 		nextSibling = (parentNode as NSOption).nextSibling
 		parentNode = nextSibling.parentNode as Element
@@ -291,7 +332,7 @@ function boot(parentNode: Root, main : () => Emitable) {
 	) throw TypeError(getErrorMessage("A002"))
 	if (typeof main !== "function" || hasOwn.call(main, componentEarmark)) throw new TypeError(getErrorMessage("A003"))
 
-	return S.root((dispose: any) => {
+	return S.root(dispose => {
 		const range = withRef(DOMRef((parentNode as Element), nextSibling), () => emitWithNodeRange(main))
 		return () => {
 			dispose(); remove(range)

@@ -1,5 +1,3 @@
-import {Skippable} from "./types"
-
 export {getProto, hasOwn, objProto, skippable, Skippable}
 
 // gets down to the value of nested streams.
@@ -8,7 +6,8 @@ const objProto = Object.prototype
 const hasOwn = objProto.hasOwnProperty
 const getProto = Object.getPrototypeOf
 
+type Skippable = null | undefined | boolean | void
 
-function skippable(node: any): node is Skippable {
-	return node == null || node === true || node === false
+function skippable(x: unknown): x is Skippable {
+	return x == null || x === true || x === false
 }
