@@ -4,7 +4,7 @@
 // import S from "s-js"
 import {getErrorMessage} from "./errors.js"
 import {doc} from "./env.js"
-import {DOM, DOMRef, Emitable, Range, component, emitWithNodeRange, forEachNode, insert, remove, setRange, syncParents, withRef} from "./render.js"
+import {DOM, DOMRef, Emitable, Range, component, emitWithNodeRange, forEachNode, insert, remove, setRange, syncParents, withRef, ComponentResult} from "./render.js"
 // TODO use V
 import {DataSignal, S} from "./S.js"
 
@@ -22,14 +22,19 @@ function Hooks(): Hooks {
 	}
 }
 
-const life = {}
+type KeyedLife = {
+	beforeUpdating: (cb: ()=>void) => void
+	afterUpdated: (cb: ()=>void)=>void
+}
 
-void ["beforeUpdating", "afterUpdated", "rendered", "reflowed", "updating", "updated", "removing"].forEach((name) => {
+const life: KeyedLife = (<Array<keyof KeyedLife>>["beforeUpdating", "afterUpdated", "rendered", "reflowed", "updating", "updated", "removing"]).reduce((life, name) => {
 	life[name] = function(cb) {
 		if (globalHooks[name] == null) globalHooks[name] = []
-		globalHooks[name].push(cb)
+		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+		globalHooks[name]!.push(cb)
 	}
-})
+	return life
+}, ({} as KeyedLife))
 
 function normalize<K>(renderer: Renderer<K> | Renderer<K>["render"]) {
 	if (renderer == null) throw new TypeError(getErrorMessage("A006"))
@@ -38,7 +43,7 @@ function normalize<K>(renderer: Renderer<K> | Renderer<K>["render"]) {
 	return renderer
 }
 
-export function keyed<K>(keys: DataSignal<K[]>, hooks: Renderer<K> | Renderer<K>["render"]) {
+export function keyed<K>(keys: DataSignal<K[]>, hooks: Renderer<K> | Renderer<K>["render"]): ComponentResult {
 	return component(Keyed, keys, normalize(hooks))
 }
 

@@ -1,4 +1,4 @@
-import {default as S, S as SInterface, DataSignal} from "../vendor/s-js/dist/es/S.js"
+import {DataSignal, default as S, S as SInterface} from "../vendor/s-js/dist/es/S.js"
 export {S_ as S, DataSignal}
 
 function map<T, U>(this: DataSignal<T>, cb: (x: T) => U) {
@@ -10,6 +10,7 @@ function toJSON<T>(this: DataSignal<T>) {
 	return S.sample(this)
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-types
 function decorateS(f: Function) {
 	return (...args: any[]) => {
 		const res = f(...args)
