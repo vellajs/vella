@@ -1,6 +1,6 @@
 {
     "name": "vella",
-    "version": "0.0.7-pre-10",
+    "version": "0.0.7-pre-11",
     "description": "stream-based Web framework",
     "type": "module",
     "main": "index.js",
@@ -8,7 +8,7 @@
     "files": [
         "index.js",
         "pieces.js",
-        "src/*.js",
+        "lib",
         "vendor/s-js/dist/es/*.js",
         "dist"
     ],
