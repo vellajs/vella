@@ -4,7 +4,7 @@
 // import S from "s-js"
 import {getErrorMessage} from "./errors.js"
 import {doc} from "./env.js"
-import {DOM, DOMRef, Emitable, Range, component, emitWithNodeRange, forEachNode, insert, remove, setRange, syncParents, withRef, ComponentResult} from "./render.js"
+import {ComponentResult, DOM, DOMRef, Emitable, Range, component, emitWithNodeRange, forEachNode, insert, remove, setRange, syncParents, withRef} from "./render.js"
 // TODO use V
 import {DataSignal, S} from "./S.js"
 
@@ -49,14 +49,14 @@ export function keyed<K>(keys: DataSignal<K[]>, hooks: Renderer<K> | Renderer<K>
 
 interface Renderer <K> {
 	render(key: K): Emitable,
-	// TODO: better type for hooks
-	hooks?(life:any): void
+	hooks?(life:KeyedLife): void
 }
 
 interface PrivateRenderer <K>{
 	render(key: K): Emitable,
-	hooks?: Hooks | ((life:any) => void) | undefined | null
+	hooks?: Hooks | ((life:KeyedLife) => void) | undefined | null
 }
+
 function Keyed<K>(keys: DataSignal<K[]>, {hooks, render}: PrivateRenderer<K>) {
 	if (typeof hooks === "function") {
 		globalHooks = Hooks()
