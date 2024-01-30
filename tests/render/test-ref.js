@@ -1,6 +1,6 @@
 import o from "ospec"
 
-import {setWindow as setVellaWindow} from "../../lib/env.js"
+import {setWindow as setVellaWindow} from "../../lib/src/env.js"
 import {S, ref, v} from "../../pieces.js"
 // import {matchError} from "../../test-util/matchError.js"
 import {e, matchDOM, setWindow as setMDWindow} from "../../test-util/matchDOM.js"

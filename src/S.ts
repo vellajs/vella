@@ -1,4 +1,4 @@
-import {DataSignal, default as S, S as SInterface} from "../vendor/s-js/dist/es/S.js"
+import {DataSignal, default as S, S as SInterface} from "../vendor/s-js/src/S.js"
 export {S_ as S, DataSignal}
 
 function map<T, U>(this: DataSignal<T>, cb: (x: T) => U) {

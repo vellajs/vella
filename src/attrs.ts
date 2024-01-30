@@ -2,7 +2,7 @@
 import {DataSignal, S} from "./S.js"
 import {Skippable, hasOwn, skippable} from "./util.js"
 import type {NameSpace} from "./env.js"
-import type {Node} from "../vendor/s-js/dist/es/S.js"
+import type {Node} from "../vendor/s-js/src/S"
 import {Nullish} from "./types.js"
 
 export {AttrsItem, ElementAttrs, parseAndSetAttrs, setAttrs}

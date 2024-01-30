@@ -1,7 +1,7 @@
 import o from "ospec"
-import {setWindow as setVellaWindow} from "../../lib/env.js"
+import {setWindow as setVellaWindow} from "../../lib/src/env.js"
 import {S, V, v} from "../../pieces.js"
-import {cacheDelay} from "../../lib/v.js"
+import {cacheDelay} from "../../lib/src/v.js"
 import {e, matchDOM, setWindow as setMDWindow} from "../../test-util/matchDOM.js"
 import {refreshWindow, win} from "../test-setup.js"
 

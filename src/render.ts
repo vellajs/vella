@@ -238,11 +238,14 @@ function emit(node: Emitable) {
 		else emitDynamic(node)
 	} else {
 		//TODO: workaround for making actual DOM fragments permanent
-		if ((node as Node).nodeType) insert(node as Node)
+		if (isNode(node)) insert(node)
 		else insert(doc.createTextNode(String(node)))
 	}
 }
 
+function isNode(node:any): node is Node {
+	return !!node?.nodeType
+}
 
 //stubs
 

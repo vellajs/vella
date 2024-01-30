@@ -1,5 +1,6 @@
 {
 	"compilerOptions": {
+		// "allowImportingTsExtensions": true,
 		"declaration": true,
 		"module": "es2020",
 		"outDir": "lib",
