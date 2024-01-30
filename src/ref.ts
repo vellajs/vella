@@ -77,24 +77,28 @@ type Life = (life: {
 function Ref(cb: Life) {
 	const nr = fromParent(Range)
 	zoneRemoveMap.set(nr, Zone)
-	asapQueue = []
-	withRange(nr, () => {
-		canCallHooks = 4
-		let res
-		try{
-			res = cb({asap, rendered, reflowed, removing})
-		} finally {
+	let previous = asapQueue
+	try {
+		asapQueue = []
+		withRange(nr, () => {
+			canCallHooks = 4
+			let res
+			try{
+				res = cb({asap, rendered, reflowed, removing})
+			} finally {
+				canCallHooks = 0
+			}
+			emit(res)
+		})
+		S.freeze(() => {
+			canCallHooks = 3
+			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+			asapQueue!.forEach(cb => forEachNode(nr as NonNullNodeRange, cb))
 			canCallHooks = 0
-		}
-		emit(res)
-	})
-	S.freeze(() => {
-		canCallHooks = 3
-		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-		asapQueue!.forEach(cb => forEachNode(nr as NonNullNodeRange, cb))
-		canCallHooks = 0
-	})
-	asapQueue = null
+		})
+	} finally {
+		asapQueue = previous
+	}
 }
 
 
