@@ -139,6 +139,12 @@ function createMap(keys) {
 	}
 }
 
+function createListItem(refs, key, i, hasIndices, render) {
+	return S.root((dispose) => {
+		const index = hasIndices ? S.value(i) : null
+		refs[i] = {dispose, range: emitWithNodeRange(render(key, index)), index}
+	})
+}
 
 function create(keys, render, placeHolderComment, hasIndices) {
 	if (keys.length === 0) {
@@ -147,10 +153,7 @@ function create(keys, render, placeHolderComment, hasIndices) {
 	} else {
 		keys = [...keys]
 		const refs = Array(keys.length)
-		keys.forEach((key, i) => {
-			const index = hasIndices ? S.value(i) : null
-			S.root((dispose) => { refs[i] = {dispose, range: emitWithNodeRange(render(key, index)), index} })
-		})
+		keys.forEach((key, i) => createListItem(refs, key, i, hasIndices, render))
 		return {refs, keys}
 	}
 }
@@ -182,10 +185,7 @@ export function update(
 			const range = Range
 			setRange(parentNodeRange)
 			withRef(DOMRef(parentNode, nextSibling), () => {
-				keys.forEach((key, i) => {
-					const index = hasIndices ? S.value(i) : null
-					S.root((dispose) => {refs[i] = {dispose, range: emitWithNodeRange(render(key, index)), index} })
-				})
+				keys.forEach((key, i) => createListItem(refs, key, i, hasIndices, render))
 			})
 			setRange(range)
 			parentNode.removeChild(placeHolderComment)
@@ -244,7 +244,7 @@ export function update(
 			const range = Range
 			setRange(parentNodeRange)
 			withRef(DOMRef(parentNode, nextSibling), () => {
-				for (let i = ks; i <= ke; i++) S.root((dispose) => { refs[i] = {dispose, range: emitWithNodeRange(render(keys[i]))} })
+				for (let i = ks; i <= ke; i++) createListItem(refs, keys[i], i, hasIndices, render)
 			})
 			setRange(range)
 		} else {
@@ -275,7 +275,7 @@ export function update(
 			withRef(DOMRef(parentNode, nextSibling), () => {
 				if (matched === 0) {
 					// p("just adding")
-					for (let i = ks; i <= ke; i++) S.root((dispose) => { refs[i] = {dispose, range: emitWithNodeRange(render(keys[i]))} })
+					for (let i = ks; i <= ke; i++) createListItem(refs, keys[i], i, hasIndices, render)
 				} else {
 					// p("going LIS", JSON.stringify({pos: positionSoFar, matched, oldIndices, refs: refs.map(first), oldRefs: oldRefs.map(first), oldMap: oldMap.map}))
           
@@ -296,10 +296,7 @@ export function update(
 								DOM.nextSibling = li < lisIndices.length ? oldRefs[oldIndices[lisIndices[li]]].range.firstNode : nextSibling
 
 								// p({ans: globalDOM.nextSibling.textContent})
-								S.root((dispose) => {
-									const index = hasIndices ? S.value(i) : null
-									refs[i] = {dispose, range: emitWithNodeRange(render(keys[i], index)), index}
-								})
+								createListItem(refs, keys[i], i, hasIndices, render)
 								// p(JSON.stringify({i, li, ks, oi, oldIndices}))
 							} else {
 								// p("old node")
@@ -333,10 +330,7 @@ export function update(
 									DOM.nextSibling = oIi == null ? nextSibling : oldRefs[oldIndices[oIi]].range.firstNode
 								}
 
-								S.root((dispose) => {
-									const index = hasIndices ? S.value(i) : null
-									refs[i] = {dispose, range: emitWithNodeRange(render(keys[i], index)), index}
-								})
+								createListItem(refs, keys[i], i, hasIndices, render)
 							} else {
 								if (hasIndices) refs[i].index(i)
 							}
