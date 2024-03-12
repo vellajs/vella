@@ -1,7 +1,7 @@
 const {rollup} = require("rollup")
 const resolve = require("@rollup/plugin-node-resolve")
 const alias = require("@rollup/plugin-alias")
-const {terser} = require("rollup-plugin-terser")
+const terser = require("@rollup/plugin-terser")
 const path = require("path")
 const fs = require("fs-extra")
 
